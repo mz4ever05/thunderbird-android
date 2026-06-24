@@ -27,7 +27,7 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
             scopes = listOf("mail-w"),
             authorizationEndpoint = "https://api.login.aol.com/oauth2/request_auth",
             tokenEndpoint = "https://api.login.aol.com/oauth2/get_token",
-            redirectUri = "${BuildConfig.APPLICATION_ID}://oauth2redirect",
+            redirectUri = "${BuildConfig.APPLICATION_ID}.fork://oauth2redirect",
         )
     }
 
@@ -40,7 +40,7 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
             scopes = listOf("https://www.fastmail.com/dev/protocol-imap", "https://www.fastmail.com/dev/protocol-smtp"),
             authorizationEndpoint = "https://api.fastmail.com/oauth/authorize",
             tokenEndpoint = "https://api.fastmail.com/oauth/refresh",
-            redirectUri = "${BuildConfig.APPLICATION_ID}://oauth2redirect",
+            redirectUri = "${BuildConfig.APPLICATION_ID}.fork://oauth2redirect",
         )
     }
 
@@ -76,7 +76,7 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
             ),
             authorizationEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
             tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            redirectUri = "msauth://net.thunderbird.android.beta/oXQR8QkspkdQCotvApfiBQiPQBU%3D",
+            redirectUri = "msauth://net.thunderbird.android.beta.fork/oXQR8QkspkdQCotvApfiBQiPQBU%3D",
         )
     }
 
@@ -89,7 +89,7 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
             scopes = listOf("mail-w"),
             authorizationEndpoint = "https://api.login.yahoo.com/oauth2/request_auth",
             tokenEndpoint = "https://api.login.yahoo.com/oauth2/get_token",
-            redirectUri = "${BuildConfig.APPLICATION_ID}://oauth2redirect",
+            redirectUri = "${BuildConfig.APPLICATION_ID}.fork://oauth2redirect",
         )
     }
 

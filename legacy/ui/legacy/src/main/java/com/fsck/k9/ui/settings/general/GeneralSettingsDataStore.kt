@@ -179,6 +179,7 @@ class GeneralSettingsDataStore(
             "message_list_density" -> messageListSettings.uiDensity.toString()
             "post_remove_navigation" -> interactionSettings.messageViewPostRemoveNavigation
             "post_mark_as_unread_navigation" -> interactionSettings.messageViewPostMarkAsUnreadNavigation.name
+            "ai_n8n_webhook_url" -> getAiWebhookUrl()
             else -> defValue
         }
     }
@@ -205,6 +206,7 @@ class GeneralSettingsDataStore(
 
             "background_ops" -> setBackgroundOps(value)
             "messageview_body_content_type" -> setBodyContentType(value)
+            "ai_n8n_webhook_url" -> setAiWebhookUrl(value)
             "quiet_time_starts" -> setQuietTimeStarts(quietTimeStarts = value)
             "quiet_time_ends" -> setQuietTimeEnds(quietTimeEnds = value)
             "message_list_subject_font" -> K9.fontSizes.messageListSubject = value.toInt()
@@ -929,5 +931,13 @@ class GeneralSettingsDataStore(
                 ),
             )
         }
+    }
+
+    private fun getAiWebhookUrl(): String {
+        return K9.aiN8nWebhookUrl
+    }
+
+    private fun setAiWebhookUrl(url: String) {
+        K9.aiN8nWebhookUrl = url
     }
 }

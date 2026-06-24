@@ -136,6 +136,9 @@ object K9 : KoinComponent {
     var fundingReminderShownTimestamp: Long = 0
     var fundingActivityCounterInMillis: Long = 0
 
+    @JvmStatic
+    var aiN8nWebhookUrl: String = ""
+
     @Synchronized
     @JvmStatic
     fun isSortAscending(sortType: SortType): Boolean {
@@ -189,6 +192,8 @@ object K9 : KoinComponent {
         fundingReminderReferenceTimestamp = storage.getLong("fundingReminderReferenceTimestamp", 0)
         fundingReminderShownTimestamp = storage.getLong("fundingReminderShownTimestamp", 0)
         fundingActivityCounterInMillis = storage.getLong("fundingActivityCounterInMillis", 0)
+        
+        aiN8nWebhookUrl = storage.getStringOrNull("aiN8nWebhookUrl") ?: ""
     }
 
     @Suppress("LongMethod")
@@ -206,6 +211,8 @@ object K9 : KoinComponent {
         editor.putLong("fundingReminderReferenceTimestamp", fundingReminderReferenceTimestamp)
         editor.putLong("fundingReminderShownTimestamp", fundingReminderShownTimestamp)
         editor.putLong("fundingActivityCounterInMillis", fundingActivityCounterInMillis)
+        
+        editor.putString("aiN8nWebhookUrl", aiN8nWebhookUrl)
 
         fontSizes.save(editor)
     }
