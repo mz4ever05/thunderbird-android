@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    api(projects.feature.changelog.api)
     api(projects.legacy.ui.base)
     api(projects.core.ui.account)
     api(projects.legacy.ui.folder)
@@ -14,22 +15,31 @@ dependencies {
     implementation(projects.mail.common)
     implementation(projects.uiUtils.toolbarBottomSheet)
     implementation(projects.core.android.contact)
+    implementation(projects.feature.changelog.internal)
 
     implementation(projects.core.featureflag)
+    implementation(projects.core.logging.api)
+    implementation(projects.core.ui.compose.common)
     implementation(projects.core.ui.theme.api)
     implementation(projects.feature.launcher)
+    implementation(projects.feature.account.settings.api)
     implementation(projects.core.common)
+    implementation(projects.core.ui.compose.designsystem)
     implementation(projects.feature.navigation.drawer.api)
     implementation(projects.feature.navigation.drawer.dropdown)
-    implementation(projects.feature.navigation.drawer.siderail)
     implementation(projects.feature.notification.api)
     // TODO: Remove AccountOauth dependency
     implementation(projects.feature.account.oauth)
+    implementation(projects.feature.account.avatar.api)
+    implementation(projects.feature.account.avatar.impl)
     implementation(projects.feature.funding.api)
     implementation(projects.feature.search.implLegacy)
     implementation(projects.feature.settings.import)
     implementation(projects.feature.telemetry.api)
-    implementation(projects.feature.mail.message.list)
+    implementation(projects.feature.mail.message.list.api)
+    implementation(projects.feature.mail.message.composer)
+    implementation(projects.feature.mail.message.export.api)
+    implementation(projects.feature.mail.message.reader.api)
 
     compileOnly(projects.mail.protocols.imap)
 
@@ -65,6 +75,8 @@ dependencies {
     implementation(libs.mime4j.core)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.datetime)
+    implementation(libs.uri)
 
     implementation(libs.glide)
     annotationProcessor(libs.glide.compiler)
@@ -79,11 +91,10 @@ dependencies {
     testImplementation(projects.mail.testing)
     testImplementation(projects.legacy.storage)
     testImplementation(projects.feature.telemetry.noop)
-    testImplementation(libs.robolectric)
+
     testImplementation(libs.androidx.test.core)
-    testImplementation(libs.kotlin.test)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.turbine)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.robolectric)
 }
 
 android {
@@ -92,4 +103,15 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+}
+
+codeCoverage {
+    branchCoverage = 2
+    lineCoverage = 4
 }

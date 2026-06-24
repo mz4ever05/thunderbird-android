@@ -18,7 +18,6 @@ import com.fsck.k9.backend.api.updateFolders
 import com.fsck.k9.mail.Address
 import com.fsck.k9.mail.AuthType
 import com.fsck.k9.mail.ConnectionSecurity
-import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.FolderType
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.MessageDownloadState
@@ -26,7 +25,8 @@ import com.fsck.k9.mail.ServerSettings
 import com.fsck.k9.mail.internet.MimeMessage
 import com.fsck.k9.mail.internet.MimeMessageHelper
 import com.fsck.k9.mail.internet.TextBody
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
+import net.thunderbird.core.common.mail.Flag
 import org.junit.After
 import org.junit.Test
 import org.koin.core.component.inject
@@ -37,7 +37,7 @@ class K9BackendFolderTest : K9RobolectricTest() {
     val messageStoreManager: MessageStoreManager by inject()
     val saveMessageDataCreator: SaveMessageDataCreator by inject()
 
-    val account: LegacyAccount = createAccount()
+    val account: LegacyAccountDto = createAccount()
     val backendFolder = createBackendFolder()
     val database: LockableDatabase = localStoreProvider.getInstance(account).database
 
@@ -97,7 +97,7 @@ class K9BackendFolderTest : K9RobolectricTest() {
             .hasMessage("Message requires a server ID to be set")
     }
 
-    fun createAccount(): LegacyAccount {
+    fun createAccount(): LegacyAccountDto {
         // FIXME: This is a hack to get Preferences into a state where it's safe to call newAccount()
         preferences.clearAccounts()
         return preferences.newAccount().apply {

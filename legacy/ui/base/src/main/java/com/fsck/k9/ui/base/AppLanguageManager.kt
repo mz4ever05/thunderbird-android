@@ -10,7 +10,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import net.thunderbird.core.preference.display.DisplaySettingsPreferenceManager
+import net.thunderbird.core.preference.display.coreSettings.DisplayCoreSettingsPreferenceManager
 import net.thunderbird.core.preference.update
 
 /**
@@ -22,7 +22,7 @@ import net.thunderbird.core.preference.update
 class AppLanguageManager(
     private val systemLocaleManager: SystemLocaleManager,
     private val coroutineScope: CoroutineScope = MainScope(),
-    private val displaySettingsPreferenceManager: DisplaySettingsPreferenceManager,
+    private val displayCoreSettingsPreferenceManager: DisplayCoreSettingsPreferenceManager,
 ) {
     private var currentOverrideLocale: Locale? = null
     private val _overrideLocale = MutableSharedFlow<Locale?>(replay = 1)
@@ -43,15 +43,15 @@ class AppLanguageManager(
     fun getOverrideLocale(): Locale? = currentOverrideLocale
 
     fun getAppLanguage(): String {
-        return displaySettingsPreferenceManager.getConfig().appLanguage
+        return displayCoreSettingsPreferenceManager.getConfig().appLanguage
     }
 
     fun setAppLanguage(appLanguage: String) {
         if (appLanguage == getAppLanguage()) {
             return
         }
-        displaySettingsPreferenceManager.update { displaySettings ->
-            displaySettings.copy(appLanguage = appLanguage)
+        displayCoreSettingsPreferenceManager.update { displayCoreSettings ->
+            displayCoreSettings.copy(appLanguage = appLanguage)
         }
 
         setLocale(appLanguage)
@@ -89,9 +89,14 @@ class AppLanguageManager(
             // language is in the form: en_US
             val language = appLanguage.substring(0, 2)
             val country = appLanguage.substring(3)
-            Locale(language, country)
+            Locale.Builder()
+                .setLanguage(language)
+                .setRegion(country)
+                .build()
         } else {
-            Locale(appLanguage)
+            Locale.Builder()
+                .setLanguage(appLanguage)
+                .build()
         }
     }
 

@@ -19,7 +19,6 @@ import com.fsck.k9.autocrypt.AutocryptDraftStateHeaderParser
 import com.fsck.k9.helper.MailTo
 import com.fsck.k9.helper.ReplyToParser
 import com.fsck.k9.mail.Address
-import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.Message.RecipientType
 import com.fsck.k9.message.AutocryptStatusInteractor
@@ -31,8 +30,9 @@ import com.fsck.k9.message.PgpMessageBuilder
 import com.fsck.k9.ui.R
 import com.fsck.k9.view.RecipientSelectView.Recipient
 import net.thunderbird.core.android.account.AccountDefaultsProvider.Companion.NO_OPENPGP_KEY
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.contact.ContactIntentHelper
+import net.thunderbird.core.common.mail.Flag
 import net.thunderbird.core.logging.legacy.Log
 import org.openintents.openpgp.OpenPgpApiManager
 import org.openintents.openpgp.OpenPgpApiManager.OpenPgpApiManagerCallback
@@ -59,7 +59,7 @@ class RecipientPresenter(
     loaderManager: LoaderManager,
     private val openPgpApiManager: OpenPgpApiManager,
     private val recipientMvpView: RecipientMvpView,
-    account: LegacyAccount,
+    account: LegacyAccountDto,
     private val composePgpInlineDecider: ComposePgpInlineDecider,
     private val composePgpEnableByDefaultDecider: ComposePgpEnableByDefaultDecider,
     private val autocryptStatusInteractor: AutocryptStatusInteractor,
@@ -67,13 +67,14 @@ class RecipientPresenter(
     private val draftStateHeaderParser: AutocryptDraftStateHeaderParser,
 ) {
     private var isToAddressAdded: Boolean = false
-    private lateinit var account: LegacyAccount
+    private lateinit var account: LegacyAccountDto
     private var alwaysBccAddresses: Array<Address>? = null
     private var hasContactPicker: Boolean? = null
     private var isReplyToEncryptedMessage = false
 
     private var lastFocusedType = RecipientType.TO
     private var currentCryptoMode = CryptoMode.NO_CHOICE
+    private var forceShowCcBcc: Boolean = false
 
     var isForceTextMessageFormat = false
         private set
@@ -148,6 +149,7 @@ class RecipientPresenter(
 
     fun initFromReplyToMessage(message: Message?, isReplyAll: Boolean) {
         val replyToAddresses = if (isReplyAll) {
+            forceShowCcBcc = true
             replyToParser.getRecipientsToReplyAllTo(message, account)
         } else {
             replyToParser.getRecipientsToReplyTo(message, account)
@@ -329,10 +331,10 @@ class RecipientPresenter(
         menu.findItem(R.id.add_from_contacts).isVisible = hasContactPermission() && hasContactPicker()
     }
 
-    fun onSwitchAccount(account: LegacyAccount) {
+    fun onSwitchAccount(account: LegacyAccountDto) {
         this.account = account
 
-        if (account.isAlwaysShowCcBcc) {
+        if (isAlwaysShowCcBcc()) {
             recipientMvpView.setCcVisibility(true)
             recipientMvpView.setBccVisibility(true)
             updateRecipientExpanderVisibility()
@@ -557,7 +559,7 @@ class RecipientPresenter(
     }
 
     fun onNonRecipientFieldFocused() {
-        if (!account.isAlwaysShowCcBcc) {
+        if (isAlwaysShowCcBcc().not()) {
             hideEmptyExtendedRecipientFields()
         }
     }
@@ -748,6 +750,10 @@ class RecipientPresenter(
                 error("This icon should not be clickable while no special mode is active!")
             }
         }
+    }
+
+    private fun isAlwaysShowCcBcc(): Boolean {
+        return forceShowCcBcc || account.isAlwaysShowCcBcc
     }
 
     private fun Array<String>.toAddressArray(): Array<Address> {

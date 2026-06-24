@@ -4,7 +4,7 @@ import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import app.k9mail.core.android.common.database.map
 import com.fsck.k9.mailstore.MigrationsHelper
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.common.mail.Protocols
 import net.thunderbird.core.logging.legacy.Log
 
@@ -28,12 +28,6 @@ import net.thunderbird.core.logging.legacy.Log
 internal class MigrationTo76(private val db: SQLiteDatabase, private val migrationsHelper: MigrationsHelper) {
     fun cleanUpSpecialLocalFolders() {
         val account = migrationsHelper.account
-
-        Log.v("Cleaning up Outbox folder")
-        val outboxFolderId =
-            account.outboxFolderId ?: createFolder("Outbox", "K9MAIL_INTERNAL_OUTBOX", OUTBOX_FOLDER_TYPE)
-        deleteOtherOutboxFolders(outboxFolderId)
-        account.outboxFolderId = outboxFolderId
 
         if (account.isPop3()) {
             Log.v("Cleaning up Drafts folder")
@@ -76,13 +70,6 @@ internal class MigrationTo76(private val db: SQLiteDatabase, private val migrati
         return folderId
     }
 
-    private fun deleteOtherOutboxFolders(outboxFolderId: Long) {
-        val otherFolderIds = getOtherFolders(OUTBOX_FOLDER_TYPE, outboxFolderId)
-        for (folderId in otherFolderIds) {
-            deleteFolder(folderId)
-        }
-    }
-
     private fun getOtherFolders(folderType: String, excludeFolderId: Long): List<Long> {
         return db.query(
             "folders",
@@ -121,10 +108,9 @@ internal class MigrationTo76(private val db: SQLiteDatabase, private val migrati
         db.delete("folders", "id = ?", arrayOf(folderId.toString()))
     }
 
-    private fun LegacyAccount.isPop3() = incomingServerSettings.type == Protocols.POP3
+    private fun LegacyAccountDto.isPop3() = incomingServerSettings.type == Protocols.POP3
 
     companion object {
-        private const val OUTBOX_FOLDER_TYPE = "outbox"
         private const val DRAFTS_FOLDER_TYPE = "drafts"
         private const val SENT_FOLDER_TYPE = "sent"
         private const val TRASH_FOLDER_TYPE = "trash"

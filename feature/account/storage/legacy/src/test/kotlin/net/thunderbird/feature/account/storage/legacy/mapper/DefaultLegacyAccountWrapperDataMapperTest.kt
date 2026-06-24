@@ -12,7 +12,7 @@ import net.thunderbird.core.android.account.Expunge
 import net.thunderbird.core.android.account.FolderMode
 import net.thunderbird.core.android.account.Identity
 import net.thunderbird.core.android.account.LegacyAccount
-import net.thunderbird.core.android.account.LegacyAccountWrapper
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.account.MessageFormat
 import net.thunderbird.core.android.account.QuoteStyle
 import net.thunderbird.core.android.account.ShowPictures
@@ -31,7 +31,7 @@ class DefaultLegacyAccountWrapperDataMapperTest {
         // arrange
         val account = createAccount()
         val expected = createAccountWrapper()
-        val testSubject = DefaultLegacyAccountWrapperDataMapper()
+        val testSubject = DefaultLegacyAccountDataMapper()
 
         // act
         val result = testSubject.toDomain(account)
@@ -45,7 +45,7 @@ class DefaultLegacyAccountWrapperDataMapperTest {
     fun `toDto should return account`() {
         // arrange
         val wrapper = createAccountWrapper()
-        val testSubject = DefaultLegacyAccountWrapperDataMapper()
+        val testSubject = DefaultLegacyAccountDataMapper()
 
         // act
         val result = testSubject.toDto(wrapper)
@@ -77,7 +77,6 @@ class DefaultLegacyAccountWrapperDataMapperTest {
         assertThat(result.importedArchiveFolder).isEqualTo("importedArchiveFolder")
         assertThat(result.importedSpamFolder).isEqualTo("importedSpamFolder")
         assertThat(result.inboxFolderId).isEqualTo(1)
-        assertThat(result.outboxFolderId).isEqualTo(2)
         assertThat(result.draftsFolderId).isEqualTo(3)
         assertThat(result.sentFolderId).isEqualTo(4)
         assertThat(result.trashFolderId).isEqualTo(5)
@@ -143,6 +142,7 @@ class DefaultLegacyAccountWrapperDataMapperTest {
         assertThat(result.signatureUse).isEqualTo(defaultIdentities[0].signatureUse)
         assertThat(result.signature).isEqualTo(defaultIdentities[0].signature)
         assertThat(result.shouldMigrateToOAuth).isEqualTo(true)
+        assertThat(result.folderPathDelimiter).isEqualTo(".")
     }
 
     private companion object {
@@ -183,8 +183,8 @@ class DefaultLegacyAccountWrapperDataMapperTest {
         val defaultNotificationSettings = NotificationSettings()
 
         @Suppress("LongMethod")
-        fun createAccount(): LegacyAccount {
-            return LegacyAccount(
+        fun createAccount(): LegacyAccountDto {
+            return LegacyAccountDto(
                 uuid = ACCOUNT_ID_RAW,
                 isSensitiveDebugLoggingEnabled = defaultIsSensitiveDebugLoggingEnabled,
             ).apply {
@@ -223,7 +223,6 @@ class DefaultLegacyAccountWrapperDataMapperTest {
                 importedArchiveFolder = "importedArchiveFolder"
                 importedSpamFolder = "importedSpamFolder"
                 inboxFolderId = 1
-                outboxFolderId = 2
                 draftsFolderId = 3
                 sentFolderId = 4
                 trashFolderId = 5
@@ -287,14 +286,15 @@ class DefaultLegacyAccountWrapperDataMapperTest {
                 signatureUse = defaultIdentities[0].signatureUse
                 signature = defaultIdentities[0].signature
                 shouldMigrateToOAuth = true
+                folderPathDelimiter = "."
             }
         }
 
         @Suppress("LongMethod")
-        fun createAccountWrapper(): LegacyAccountWrapper {
+        fun createAccountWrapper(): LegacyAccount {
             val id = AccountIdFactory.of(ACCOUNT_ID_RAW)
 
-            return LegacyAccountWrapper(
+            return LegacyAccount(
                 isSensitiveDebugLoggingEnabled = defaultIsSensitiveDebugLoggingEnabled,
 
                 // [Account]
@@ -337,7 +337,6 @@ class DefaultLegacyAccountWrapperDataMapperTest {
                 importedArchiveFolder = "importedArchiveFolder",
                 importedSpamFolder = "importedSpamFolder",
                 inboxFolderId = 1,
-                outboxFolderId = 2,
                 draftsFolderId = 3,
                 sentFolderId = 4,
                 trashFolderId = 5,
@@ -402,6 +401,7 @@ class DefaultLegacyAccountWrapperDataMapperTest {
                 signatureUse = defaultIdentities[0].signatureUse,
                 signature = defaultIdentities[0].signature,
                 shouldMigrateToOAuth = true,
+                folderPathDelimiter = ".",
             )
         }
     }

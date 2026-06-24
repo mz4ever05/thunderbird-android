@@ -1,69 +1,62 @@
 package net.thunderbird.app.common.core
 
-import android.content.Context
-import kotlin.time.ExperimentalTime
-import net.thunderbird.app.common.BuildConfig
-import net.thunderbird.core.logging.DefaultLogger
-import net.thunderbird.core.logging.LogLevel
-import net.thunderbird.core.logging.LogSink
-import net.thunderbird.core.logging.Logger
-import net.thunderbird.core.logging.composite.CompositeLogSink
-import net.thunderbird.core.logging.console.ConsoleLogSink
-import net.thunderbird.core.logging.file.AndroidFileSystemManager
-import net.thunderbird.core.logging.file.FileLogSink
+import com.eygraber.uri.toAndroidUri
+import net.thunderbird.app.common.appVersion.DefaultAppVersionProvider
+import net.thunderbird.app.common.core.configstore.appCommonCoreConfigStoreModule
+import net.thunderbird.app.common.core.logging.appCommonCoreLogger
+import net.thunderbird.app.common.core.ui.appCommonCoreUiModule
+import net.thunderbird.core.common.provider.AppVersionProvider
+import net.thunderbird.core.file.AndroidDirectoryProvider
+import net.thunderbird.core.file.AndroidFileSystemManager
+import net.thunderbird.core.file.AndroidMimeTypeProvider
+import net.thunderbird.core.file.AndroidMimeTypeResolver
+import net.thunderbird.core.file.DefaultFileManager
+import net.thunderbird.core.file.DirectoryProvider
+import net.thunderbird.core.file.FileManager
+import net.thunderbird.core.file.FileSystemManager
+import net.thunderbird.core.file.MimeTypeResolver
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val appCommonCoreModule: Module = module {
-    single<LogLevel> {
-        if (BuildConfig.DEBUG) LogLevel.VERBOSE else LogLevel.INFO
-    }
+    includes(
+        appCommonCoreConfigStoreModule,
+        appCommonCoreLogger,
+        appCommonCoreUiModule,
+    )
 
-    single<List<LogSink>> {
-        listOf(
-            ConsoleLogSink(
-                level = get(),
-            ),
+    single<FileSystemManager> {
+        AndroidFileSystemManager(
+            contentResolver = androidContext().contentResolver,
         )
     }
 
-    single<CompositeLogSink> {
-        CompositeLogSink(
-            level = get(),
-            sinks = get(),
+    single<FileManager> {
+        DefaultFileManager(
+            fileSystem = get(),
         )
     }
 
-    single<Logger> {
-        @OptIn(ExperimentalTime::class)
-        DefaultLogger(
-            sink = get<CompositeLogSink>(),
+    single<DirectoryProvider> {
+        AndroidDirectoryProvider(
+            context = androidContext(),
         )
     }
 
-    single<CompositeLogSink>(named(SYNC_DEBUG_LOG)) {
-        CompositeLogSink(
-            level = get(),
-            sinks = get(),
-        )
+    single<AndroidMimeTypeProvider> {
+        val contentResolver = androidContext().contentResolver
+
+        AndroidMimeTypeProvider { uri ->
+            contentResolver.getType(uri.toAndroidUri())
+        }
     }
 
-    single<FileLogSink>(named(SYNC_DEBUG_LOG)) {
-        FileLogSink(
-            level = LogLevel.DEBUG,
-            fileName = "thunderbird-sync-debug",
-            fileLocation = get<Context>().filesDir.path,
-            fileSystemManager = AndroidFileSystemManager(get<Context>().contentResolver),
-        )
-    }
+    single<AppVersionProvider> { DefaultAppVersionProvider(context = androidContext(), logger = get()) }
 
-    single<Logger> (named(SYNC_DEBUG_LOG)) {
-        @OptIn(ExperimentalTime::class)
-        DefaultLogger(
-            sink = get<CompositeLogSink>(named(SYNC_DEBUG_LOG)),
+    single<MimeTypeResolver> {
+        AndroidMimeTypeResolver(
+            mimeTypeProvider = get(),
         )
     }
 }
-
-internal const val SYNC_DEBUG_LOG = "syncDebug"

@@ -4,6 +4,9 @@ plugins {
 }
 
 kotlin {
+    android {
+        namespace = "net.thunderbird.feature.notification"
+    }
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core.common)
@@ -13,23 +16,28 @@ kotlin {
             implementation(projects.feature.notification.api)
         }
         commonTest.dependencies {
+            implementation(projects.core.testing)
             implementation(projects.core.logging.testing)
             implementation(projects.feature.notification.testing)
         }
-        androidUnitTest.dependencies {
-            implementation(libs.androidx.test.core)
+        androidMain.dependencies {
+            // should split feature.launcher into api/impl?
+            implementation(projects.feature.launcher)
+            implementation(projects.core.ui.theme.api)
+        }
+        androidHostTest.dependencies {
             implementation(libs.mockito.core)
             implementation(libs.mockito.kotlin)
-            implementation(libs.robolectric)
         }
     }
-}
-
-android {
-    namespace = "net.thunderbird.feature.notification"
 }
 
 compose.resources {
     publicResClass = false
     packageOfResClass = "net.thunderbird.feature.notification.resources.impl"
+}
+
+codeCoverage {
+    branchCoverage = 29
+    lineCoverage = 31
 }

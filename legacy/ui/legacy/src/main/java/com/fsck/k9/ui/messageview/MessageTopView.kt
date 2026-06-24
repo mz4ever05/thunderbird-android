@@ -17,19 +17,25 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import app.k9mail.core.android.common.contact.ContactRepository
 import com.fsck.k9.mail.Message
+import com.fsck.k9.mail.Part
 import com.fsck.k9.mailstore.AttachmentViewInfo
 import com.fsck.k9.mailstore.MessageViewInfo
 import com.fsck.k9.ui.R
+import com.fsck.k9.ui.helper.SizeFormatter
 import com.fsck.k9.ui.messageview.MessageContainerView.OnRenderingFinishedListener
 import com.fsck.k9.view.MessageHeader
 import com.fsck.k9.view.ThemeUtils
 import com.fsck.k9.view.ToolableViewAnimator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textview.MaterialTextView
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.account.ShowPictures
 import net.thunderbird.core.common.mail.EmailAddress
 import net.thunderbird.core.common.mail.toEmailAddressOrNull
+import net.thunderbird.core.preference.BodyContentType
+import net.thunderbird.core.preference.display.visualSettings.DisplayVisualSettingsPreferenceManager
+import net.thunderbird.core.ui.animation.manager.AnimationManager
+import net.thunderbird.feature.mail.message.reader.api.ui.MessageReaderViewContract
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -39,6 +45,8 @@ class MessageTopView(
 ) : LinearLayout(context, attrs), KoinComponent {
 
     private val contactRepository: ContactRepository by inject()
+    private val visualSettingsPrefManager: DisplayVisualSettingsPreferenceManager by inject()
+    private val animationManager: AnimationManager by inject()
 
     private lateinit var layoutInflater: LayoutInflater
 
@@ -51,13 +59,15 @@ class MessageTopView(
     private lateinit var containerView: ViewGroup
     private lateinit var downloadRemainderButton: MaterialButton
     private lateinit var attachmentCallback: AttachmentViewCallback
+    private lateinit var messageReaderViewModel: MessageReaderViewContract.ViewModel<Part>
     private lateinit var extraHeaderContainer: View
     private lateinit var showPicturesButton: MaterialButton
 
     private var isShowingProgress = false
     private var showPicturesButtonClicked = false
+    var renderPlainFormat = false
 
-    private var showAccountChip = false
+    private var showAccountIndicator = false
 
     private var messageCryptoPresenter: MessageCryptoPresenter? = null
 
@@ -68,6 +78,10 @@ class MessageTopView(
         layoutInflater = LayoutInflater.from(context)
 
         viewAnimator = findViewById(R.id.message_layout_animator)
+        if (!animationManager.shouldShowAnimations()) {
+            viewAnimator.inAnimation = null
+            viewAnimator.outAnimation = null
+        }
         progressBar = findViewById(R.id.message_progress)
         progressText = findViewById(R.id.message_progress_text)
 
@@ -80,11 +94,13 @@ class MessageTopView(
 
         containerView = findViewById(R.id.message_container)
 
+        renderPlainFormat = visualSettingsPrefManager.getConfig().bodyContentType == BodyContentType.TEXT_PLAIN
+
         hideHeaderView()
     }
 
-    fun setShowAccountChip(showAccountChip: Boolean) {
-        this.showAccountChip = showAccountChip
+    fun setShowAccountIndicator(showAccountIndicator: Boolean) {
+        this.showAccountIndicator = showAccountIndicator
     }
 
     private fun setShowPicturesButtonListener() {
@@ -108,7 +124,7 @@ class MessageTopView(
         setShowDownloadButton(messageViewInfo)
     }
 
-    fun showMessage(account: LegacyAccount, messageViewInfo: MessageViewInfo) {
+    fun showMessage(account: LegacyAccountDto, messageViewInfo: MessageViewInfo) {
         resetAndPrepareMessageView(messageViewInfo)
 
         val showPicturesSetting = account.showPictures
@@ -125,6 +141,7 @@ class MessageTopView(
         val hideUnsignedTextDivider = account.isOpenPgpHideSignOnly
         view.displayMessageViewContainer(
             messageViewInfo,
+            renderPlainFormat,
             object : OnRenderingFinishedListener {
                 override fun onLoadFinished() {
                     displayViewOnLoadFinished(true)
@@ -133,11 +150,57 @@ class MessageTopView(
             loadPictures,
             hideUnsignedTextDivider,
             attachmentCallback,
+            messageReaderViewModel,
         )
 
         if (view.hasHiddenExternalImages && !showPicturesButtonClicked) {
             showShowPicturesButton()
+        } else {
+            hideShowPicturesButton()
         }
+
+        updateAttachmentSummary(messageViewInfo)
+    }
+
+    private fun updateAttachmentSummary(messageViewInfo: MessageViewInfo) {
+        val nonInlineAttachments = messageViewInfo.attachments
+            ?.filter { !it.inlineAttachment }
+            .orEmpty()
+
+        val extraNonInlineAttachments = messageViewInfo.extraAttachments
+            ?.filter { !it.inlineAttachment }
+            .orEmpty()
+
+        val allAttachments = nonInlineAttachments + extraNonInlineAttachments
+
+        if (allAttachments.isEmpty()) {
+            messageHeaderView.hideAttachmentSummary()
+            return
+        }
+
+        val count = allAttachments.size
+        val totalSize = allAttachments.sumOf { it.size.coerceAtLeast(0) }
+        val sizeFormatter = SizeFormatter(context.resources)
+        val sizeText = sizeFormatter.formatSize(totalSize)
+
+        val summaryText: String
+        val viewButtonText: String
+
+        if (count == 1) {
+            val fileName = allAttachments[0].displayName
+            summaryText = context.getString(R.string.message_view_single_attachment_summary, fileName, sizeText)
+            viewButtonText = context.getString(R.string.message_view_attachments_view)
+        } else {
+            summaryText = context.resources.getQuantityString(
+                R.plurals.message_view_attachment_summary,
+                count,
+                count,
+                sizeText,
+            )
+            viewButtonText = context.getString(R.string.message_view_attachments_view_all)
+        }
+
+        messageHeaderView.setAttachmentSummary(summaryText, viewButtonText)
     }
 
     fun showMessageEncryptedButIncomplete(messageViewInfo: MessageViewInfo, providerIcon: Drawable?) {
@@ -196,8 +259,8 @@ class MessageTopView(
         }
     }
 
-    fun setHeaders(message: Message?, account: LegacyAccount?, showStar: Boolean) {
-        messageHeaderView.populate(message, account, showStar, showAccountChip)
+    fun setHeaders(message: Message?, account: LegacyAccountDto?, showStar: Boolean) {
+        messageHeaderView.populate(message, account, showStar, showAccountIndicator)
         messageHeaderView.visibility = VISIBLE
     }
 
@@ -223,6 +286,10 @@ class MessageTopView(
 
     fun setAttachmentCallback(callback: AttachmentViewCallback) {
         attachmentCallback = callback
+    }
+
+    fun setMessageReaderViewModel(viewModel: MessageReaderViewContract.ViewModel<Part>) {
+        this.messageReaderViewModel = viewModel
     }
 
     fun setMessageCryptoPresenter(messageCryptoPresenter: MessageCryptoPresenter?) {

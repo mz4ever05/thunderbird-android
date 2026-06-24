@@ -15,6 +15,9 @@ import assertk.assertions.prop
 import com.fsck.k9.K9RobolectricTest
 import com.fsck.k9.Preferences
 import java.util.UUID
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
@@ -46,7 +49,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throw on empty file`() {
+    fun `importSettings() should throw on empty file`() = runTest {
         val inputStream = "".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -56,7 +59,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throw on missing format attribute`() {
+    fun `importSettings() should throw on missing format attribute`() = runTest {
         val inputStream = """<k9settings version="1"></k9settings>""".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -66,7 +69,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throw on invalid format attribute value`() {
+    fun `importSettings() should throw on invalid format attribute value`() = runTest {
         val inputStream = """<k9settings version="1" format="A"></k9settings>""".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -76,7 +79,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throw on invalid format version`() {
+    fun `importSettings() should throw on invalid format version`() = runTest {
         val inputStream = """<k9settings version="1" format="0"></k9settings>""".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -86,7 +89,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throw on missing version attribute`() {
+    fun `importSettings() should throw on missing version attribute`() = runTest {
         val inputStream = """<k9settings format="1"></k9settings>""".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -96,7 +99,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throws on invalid version attribute value`() {
+    fun `importSettings() should throws on invalid version attribute value`() = runTest {
         val inputStream = """<k9settings format="1" version="A"></k9settings>""".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -106,7 +109,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings() should throw on invalid version`() {
+    fun `importSettings() should throw on invalid version`() = runTest {
         val inputStream = """<k9settings format="1" version="0"></k9settings>""".byteInputStream()
         val accountUuids = emptyList<String>()
 
@@ -115,8 +118,9 @@ class SettingsImporterTest : K9RobolectricTest() {
         }.isInstanceOf<SettingsImportExportException>()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `importSettings() should disable accounts needing passwords`() {
+    fun `importSettings() should disable accounts needing passwords`() = runTest(UnconfinedTestDispatcher()) {
         val accountUuid = UUID.randomUUID().toString()
         val inputStream =
             """
@@ -169,7 +173,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings()  configures unifiedInbox when globalSettingsImported is false`() {
+    fun `importSettings()  configures unifiedInbox when globalSettingsImported is false`() = runTest {
         val accountUuid = UUID.randomUUID().toString()
         val inputStream =
             """
@@ -210,7 +214,7 @@ class SettingsImporterTest : K9RobolectricTest() {
     }
 
     @Test
-    fun `importSettings()  does not not configure unifiedInbox when globalSettingsImported is true`() {
+    fun `importSettings()  does not not configure unifiedInbox when globalSettingsImported is true`() = runTest {
         val accountUuid = UUID.randomUUID().toString()
         val inputStream =
             """

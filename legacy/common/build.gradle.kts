@@ -23,9 +23,7 @@ dependencies {
     implementation(projects.feature.widget.messageList)
 
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.core.ktx)
     implementation(libs.preferencex)
-    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.appauth)
 
     implementation(libs.glide)
@@ -42,4 +40,9 @@ dependencies {
 
 android {
     namespace = "com.fsck.k9.common"
+}
+
+codeCoverage {
+    branchCoverage = 10
+    lineCoverage = 4
 }

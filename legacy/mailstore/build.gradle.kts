@@ -17,4 +17,11 @@ dependencies {
     implementation(projects.feature.search.implLegacy)
 
     implementation(projects.mail.common)
+
+    testImplementation(libs.mockito.kotlin)
+}
+
+codeCoverage {
+    branchCoverage = 0
+    lineCoverage = 7
 }

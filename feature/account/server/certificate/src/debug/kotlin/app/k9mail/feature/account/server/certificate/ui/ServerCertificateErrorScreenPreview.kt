@@ -1,7 +1,7 @@
 package app.k9mail.feature.account.server.certificate.ui
 
 import androidx.compose.runtime.Composable
-import app.k9mail.core.ui.compose.common.annotation.PreviewDevices
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.k9mail.core.ui.compose.common.koin.koinPreview
 import app.k9mail.core.ui.compose.designsystem.PreviewWithTheme
 import app.k9mail.feature.account.server.certificate.data.InMemoryServerCertificateErrorRepository
@@ -9,6 +9,7 @@ import app.k9mail.feature.account.server.certificate.domain.entity.ServerCertifi
 import app.k9mail.feature.account.server.certificate.domain.usecase.FormatServerCertificateError
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import net.thunderbird.core.ui.common.annotation.PreviewDevices
 
 @Composable
 @PreviewDevices
@@ -62,12 +63,14 @@ internal fun ServerCertificateErrorScreenPreview() {
             ServerCertificateErrorScreen(
                 onCertificateAccepted = {},
                 onBack = {},
-                viewModel = ServerCertificateErrorViewModel(
-                    addServerCertificateException = { _, _, _ -> },
-                    certificateErrorRepository = InMemoryServerCertificateErrorRepository(serverCertificateError),
-                    formatServerCertificateError = FormatServerCertificateError(),
-                    initialState = ServerCertificateErrorContract.State(isShowServerCertificate = false),
-                ),
+                viewModel = viewModel {
+                    ServerCertificateErrorViewModel(
+                        addServerCertificateException = { _, _, _ -> },
+                        certificateErrorRepository = InMemoryServerCertificateErrorRepository(serverCertificateError),
+                        formatServerCertificateError = FormatServerCertificateError(),
+                        initialState = ServerCertificateErrorContract.State(isShowServerCertificate = false),
+                    )
+                },
             )
         }
     }

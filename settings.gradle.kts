@@ -17,6 +17,10 @@ pluginManagement {
     }
 }
 
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
@@ -66,6 +70,7 @@ include(
     ":feature:account:edit",
     ":feature:account:fake",
     ":feature:account:oauth",
+    ":feature:account:profile:api",
     ":feature:account:settings:api",
     ":feature:account:settings:impl",
     ":feature:account:server:certificate",
@@ -93,7 +98,13 @@ include(
 include(
     ":feature:mail:account:api",
     ":feature:mail:folder:api",
-    ":feature:mail:message:list",
+    ":feature:mail:message:composer",
+    ":feature:mail:message:list:api",
+    ":feature:mail:message:list:internal",
+    ":feature:mail:message:export:api",
+    ":feature:mail:message:export:impl-eml",
+    ":feature:mail:message:reader:api",
+    ":feature:mail:message:reader:impl",
 )
 
 include(
@@ -107,7 +118,7 @@ include(
 include(
     ":feature:navigation:drawer:api",
     ":feature:navigation:drawer:dropdown",
-    ":feature:navigation:drawer:siderail",
+    ":feature:changelog:api",
 )
 
 include(
@@ -149,18 +160,24 @@ include(
 include(
     ":core:architecture:api",
     ":core:common",
+    ":core:configstore:api",
+    ":core:configstore:impl-backend",
+    ":core:configstore:testing",
     ":core:featureflag",
     ":core:logging:api",
+    ":core:logging:config",
     ":core:logging:impl-composite",
     ":core:logging:impl-console",
     ":core:logging:impl-legacy",
     ":core:logging:impl-file",
     ":core:logging:testing",
+    ":core:file",
     ":core:mail:mailserver",
     ":core:preference:api",
     ":core:preference:impl",
     ":core:outcome",
     ":core:testing",
+    ":core:validation",
 )
 
 include(
@@ -174,19 +191,26 @@ include(
 )
 
 include(
+    ":core:ui:common",
+    ":core:ui:contract",
+    ":core:ui:setting:api",
+    ":core:ui:setting:component",
+    ":core:ui:setting:impl-dialog",
+    ":core:ui:testing",
+)
+
+include(
     ":core:ui:account",
+    ":core:ui:animation:manager",
     ":core:ui:compose:common",
     ":core:ui:compose:designsystem",
-    ":core:ui:compose:navigation",
-    ":core:ui:compose:preference",
     ":core:ui:compose:testing",
-    ":core:ui:compose:theme2:common",
-    ":core:ui:compose:theme2:k9mail",
-    ":core:ui:compose:theme2:thunderbird",
+    ":core:ui:compose:theme2",
     ":core:ui:legacy:designsystem",
     ":core:ui:legacy:theme2:common",
     ":core:ui:legacy:theme2:k9mail",
     ":core:ui:legacy:theme2:thunderbird",
+    ":core:ui:navigation",
     ":core:ui:theme:api",
     ":core:ui:theme:manager",
 )
@@ -222,9 +246,9 @@ include(
 )
 
 include(
-    ":ui-utils:LinearLayoutManager",
-    ":ui-utils:ItemTouchHelper",
-    ":ui-utils:ToolbarBottomSheet",
+    ":ui-utils:item-touch-helper",
+    ":ui-utils:linear-layout-manager",
+    ":ui-utils:toolbar-bottom-sheet",
 )
 
 include(":plugins:openpgp-api-lib:openpgp-api")
@@ -234,11 +258,12 @@ include(
     ":cli:html-cleaner-cli",
     ":cli:resource-mover-cli",
     ":cli:translation-cli",
+    ":cli:weblate-cli",
 )
 
 include(
     ":library:html-cleaner",
-    ":library:TokenAutoComplete",
+    ":library:token-auto-complete",
 )
 
 include(
@@ -249,14 +274,22 @@ include(
     ":feature:debug-settings",
 )
 
-check(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+include(
+    ":feature:thundermail:api",
+    ":feature:thundermail:internal:common",
+    ":feature:thundermail:thunderbird",
+    ":feature:thundermail:k9mail",
+)
+
+check(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21)) {
     """
-        Java 17+ is required to build Thunderbird for Android.
-        But it found an incompatible Java version ${{JavaVersion.current()}}.
+        Java 21+ is required to build Thunderbird for Android.
+        But it found an incompatible Java version ${{ JavaVersion.current() }}.
 
         Java Home: [${System.getProperty("java.home")}]
 
-        Please install Java 17+ and set JAVA_HOME to the directory containing the Java 17+ installation.
+        Please install Java 21+ and set JAVA_HOME to the directory containing the Java 21+ installation.
         https://developer.android.com/build/jdks#jdk-config-in-studio
     """.trimIndent()
 }
+include(":feature:changelog:internal")

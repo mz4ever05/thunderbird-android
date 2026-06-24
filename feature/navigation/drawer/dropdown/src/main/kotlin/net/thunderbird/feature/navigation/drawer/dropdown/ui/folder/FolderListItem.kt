@@ -19,12 +19,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import app.k9mail.core.ui.compose.designsystem.atom.icon.Icon
-import app.k9mail.core.ui.compose.designsystem.atom.icon.Icons
 import app.k9mail.core.ui.compose.designsystem.atom.text.TextLabelLarge
 import app.k9mail.core.ui.compose.designsystem.organism.drawer.NavigationDrawerItem
-import app.k9mail.core.ui.compose.theme2.MainTheme
 import app.k9mail.legacy.ui.folder.FolderNameFormatter
+import net.thunderbird.core.ui.compose.designsystem.atom.icon.Icon
+import net.thunderbird.core.ui.compose.designsystem.atom.icon.Icons
+import net.thunderbird.core.ui.compose.theme2.MainTheme
 import net.thunderbird.feature.mail.folder.api.FolderType
 import net.thunderbird.feature.navigation.drawer.dropdown.R
 import net.thunderbird.feature.navigation.drawer.dropdown.domain.entity.DisplayFolder
@@ -42,11 +42,12 @@ internal fun FolderListItem(
     folderNameFormatter: FolderNameFormatter,
     selectedFolderId: String?,
     modifier: Modifier = Modifier,
+    isExpandInitial: Boolean = false,
     treeFolder: DisplayTreeFolder? = null,
     parentPrefix: String? = "",
     indentationLevel: Int = 1,
 ) {
-    val isExpanded = rememberSaveable { mutableStateOf(false) }
+    val isExpanded = rememberSaveable(isExpandInitial) { mutableStateOf(isExpandInitial) }
 
     var unreadCount = displayFolder.unreadMessageCount
     var starredCount = displayFolder.starredMessageCount
@@ -76,13 +77,14 @@ internal fun FolderListItem(
                 )
             },
             selected = selectedFolderId == displayFolder.id,
-            onClick = { onClick(displayFolder) },
-            modifier = Modifier.fillMaxWidth(),
-            icon = {
-                Icon(
-                    imageVector = mapFolderIcon(displayFolder),
-                )
+            onClick = {
+                when (displayFolder) {
+                    is MailDisplayFolder if displayFolder.accountId == null -> isExpanded.value = !isExpanded.value
+                    else -> onClick(displayFolder)
+                }
             },
+            modifier = Modifier.fillMaxWidth(),
+            icon = { Icon(imageVector = mapFolderIcon(displayFolder)) },
         )
 
         // Managing children
@@ -155,8 +157,13 @@ private fun mapFolderName(
     parentPrefix: String? = "",
 ): String {
     return when (displayFolder) {
-        is MailDisplayFolder -> folderNameFormatter.displayName(displayFolder.folder).removePrefix("$parentPrefix/")
+        is MailDisplayFolder ->
+            folderNameFormatter
+                .displayName(displayFolder.folder)
+                .removePrefix("$parentPrefix${displayFolder.pathDelimiter}")
+
         is UnifiedDisplayFolder -> mapUnifiedFolderName(displayFolder)
+
         else -> throw IllegalArgumentException("Unknown display folder: $displayFolder")
     }
 }
@@ -177,6 +184,11 @@ private fun mapFolderIcon(folder: DisplayFolder): ImageVector {
 }
 
 private fun mapDisplayAccountFolderIcon(folder: MailDisplayFolder): ImageVector {
+    // Show a special icon for top-group regular folders, but not for placeholders (accountId == null)
+    if (folder.folder.type == FolderType.REGULAR && folder.isInTopGroup && folder.accountId != null) {
+        return Icons.Outlined.FavoriteFolder
+    }
+
     return when (folder.folder.type) {
         FolderType.INBOX -> Icons.Outlined.Inbox
         FolderType.OUTBOX -> Icons.Outlined.Outbox

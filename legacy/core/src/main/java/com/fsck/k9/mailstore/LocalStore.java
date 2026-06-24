@@ -36,9 +36,9 @@ import com.fsck.k9.mail.Body;
 import com.fsck.k9.mail.BodyPart;
 import com.fsck.k9.mail.FetchProfile;
 import com.fsck.k9.mail.FetchProfile.Item;
-import com.fsck.k9.mail.Flag;
+import net.thunderbird.core.common.mail.Flag;
 import com.fsck.k9.mail.FolderType;
-import com.fsck.k9.mail.MessagingException;
+import net.thunderbird.core.common.exception.MessagingException;
 import com.fsck.k9.mail.Multipart;
 import com.fsck.k9.mail.Part;
 import com.fsck.k9.mailstore.LocalFolder.DataLocation;
@@ -46,8 +46,9 @@ import com.fsck.k9.mailstore.LockableDatabase.DbCallback;
 import com.fsck.k9.mailstore.LockableDatabase.SchemaDefinition;
 import com.fsck.k9.message.extractors.AttachmentInfoExtractor;
 import kotlin.time.Clock;
-import net.thunderbird.core.android.account.LegacyAccount;
+import net.thunderbird.core.android.account.LegacyAccountDto;
 import net.thunderbird.core.preference.GeneralSettingsManager;
+import net.thunderbird.feature.mail.message.list.LocalMessageUidPrefixProvider;
 import net.thunderbird.feature.search.legacy.LocalMessageSearch;
 import net.thunderbird.feature.search.legacy.api.SearchAttribute;
 import net.thunderbird.feature.search.legacy.api.MessageSearchField;
@@ -163,28 +164,30 @@ public class LocalStore {
     private final AttachmentInfoExtractor attachmentInfoExtractor;
     private final StorageFilesProvider storageFilesProvider;
 
-    private final LegacyAccount account;
+    private final LegacyAccountDto account;
     private final LockableDatabase database;
     private final OutboxStateRepository outboxStateRepository;
     private GeneralSettingsManager generalSettingsManager;
+    private LocalMessageUidPrefixProvider localMessageUidPrefixProvider;
 
-    static LocalStore createInstance(LegacyAccount account, Context context, GeneralSettingsManager generalSettingsManager) throws MessagingException {
-        return new LocalStore(account, context, generalSettingsManager);
+    static LocalStore createInstance(LegacyAccountDto account, Context context, GeneralSettingsManager generalSettingsManager,
+        LocalMessageUidPrefixProvider localMessageUidPrefixProvider) throws MessagingException {
+        return new LocalStore(account, context, generalSettingsManager, localMessageUidPrefixProvider);
     }
 
     /**
      * local://localhost/path/to/database/uuid.db
-     * This constructor is only used by {@link LocalStoreProvider#getInstance(LegacyAccount,GeneralSettingsManager)}
+     * This constructor is only used by {@link LocalStoreProvider#getInstance(LegacyAccountDto)}
      */
-    private LocalStore(final LegacyAccount account, final Context context, final GeneralSettingsManager generalSettingsManager) throws MessagingException {
+    private LocalStore(final LegacyAccountDto account, final Context context, final GeneralSettingsManager generalSettingsManager,
+        LocalMessageUidPrefixProvider localMessageUidPrefixProvider) throws MessagingException {
         pendingCommandSerializer = PendingCommandSerializer.getInstance();
         attachmentInfoExtractor = DI.get(AttachmentInfoExtractor.class);
         StorageFilesProviderFactory storageFilesProviderFactory = DI.get(StorageFilesProviderFactory.class);
         storageFilesProvider = storageFilesProviderFactory.createStorageFilesProvider(account.getUuid());
-
+        this.localMessageUidPrefixProvider = localMessageUidPrefixProvider;
         this.account = account;
         this.generalSettingsManager = generalSettingsManager;
-
         SchemaDefinitionFactory schemaDefinitionFactory = DI.get(SchemaDefinitionFactory.class);
         RealMigrationsHelper migrationsHelper = new RealMigrationsHelper();
         SchemaDefinition schemaDefinition = schemaDefinitionFactory.createSchemaDefinition(migrationsHelper);
@@ -201,7 +204,7 @@ public class LocalStore {
         return schemaDefinitionFactory.getDatabaseVersion();
     }
 
-    LegacyAccount getAccount() {
+    LegacyAccountDto getAccount() {
         return account;
     }
 
@@ -214,7 +217,7 @@ public class LocalStore {
     }
 
     public LocalFolder getFolder(String serverId) {
-        return new LocalFolder(this, serverId, generalSettingsManager);
+        return new LocalFolder(this, serverId, generalSettingsManager, localMessageUidPrefixProvider);
     }
 
     public LocalFolder getFolder(long folderId) {
@@ -222,7 +225,7 @@ public class LocalStore {
     }
 
     public LocalFolder getFolder(String serverId, String name, FolderType type) {
-        return new LocalFolder(this, serverId, name, type, generalSettingsManager);
+        return new LocalFolder(this, serverId, name, type, generalSettingsManager, localMessageUidPrefixProvider);
     }
 
     // TODO this takes about 260-300ms, seems slow.
@@ -662,14 +665,19 @@ public class LocalStore {
     }
 
     public long createLocalFolder(String folderName, FolderType type) throws MessagingException {
+        return createLocalFolder(folderName, type, 0, MoreMessages.FALSE);
+    }
+
+    public long createLocalFolder(
+        String folderName, FolderType type, int visibleLimit, MoreMessages moreMessages) throws MessagingException {
         return database.execute(true, (DbCallback<Long>) db -> {
             ContentValues values = new ContentValues();
             values.put("name", folderName);
             values.putNull("server_id");
             values.put("local_only", 1);
             values.put("type", FolderTypeConverter.toDatabaseFolderType(type));
-            values.put("visible_limit", 0);
-            values.put("more_messages", MoreMessages.FALSE.getDatabaseName());
+            values.put("visible_limit", visibleLimit);
+            values.put("more_messages", moreMessages.getDatabaseName());
             values.put("visible", true);
 
             return db.insert("folders", null, values);
@@ -1039,7 +1047,7 @@ public class LocalStore {
 
     class RealMigrationsHelper implements MigrationsHelper {
         @Override
-        public LegacyAccount getAccount() {
+        public LegacyAccountDto getAccount() {
             return LocalStore.this.getAccount();
         }
 

@@ -16,8 +16,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.k9mail.core.ui.legacy.designsystem.atom.icon.Icons
-import app.k9mail.feature.funding.api.FundingManager
-import app.k9mail.feature.funding.api.FundingType
 import app.k9mail.feature.launcher.FeatureLauncherActivity
 import app.k9mail.feature.launcher.FeatureLauncherTarget
 import com.fsck.k9.ui.R
@@ -30,8 +28,10 @@ import com.mikepenz.fastadapter.adapters.ItemAdapter
 import com.mikepenz.fastadapter.drag.ItemTouchCallback
 import com.mikepenz.fastadapter.drag.SimpleDragCallback
 import com.mikepenz.fastadapter.utils.DragDropUtil
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.common.provider.BrandNameProvider
+import net.thunderbird.feature.funding.api.FundingManager
+import net.thunderbird.feature.funding.api.FundingType
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import app.k9mail.feature.settings.importing.R as SettingsImportR
@@ -90,7 +90,7 @@ class SettingsListFragment : Fragment(), ItemTouchCallback {
         }
     }
 
-    private fun populateSettingsList(accounts: List<LegacyAccount>) {
+    private fun populateSettingsList(accounts: List<LegacyAccountDto>) {
         val listItems = buildSettingsList {
             addAction(
                 text = getString(R.string.general_settings_title),
@@ -188,7 +188,7 @@ class SettingsListFragment : Fragment(), ItemTouchCallback {
         }
     }
 
-    private fun launchAccountSettings(account: LegacyAccount) {
+    private fun launchAccountSettings(account: LegacyAccountDto) {
         AccountSettingsActivity.start(requireActivity(), account.uuid)
     }
 
@@ -216,7 +216,7 @@ class SettingsListFragment : Fragment(), ItemTouchCallback {
             settingsList.add(UrlActionItem(itemId, text, url, icon))
         }
 
-        fun addAccount(account: LegacyAccount, isDraggable: Boolean) {
+        fun addAccount(account: LegacyAccountDto, isDraggable: Boolean) {
             settingsList.add(AccountItem(account, isDraggable))
         }
 

@@ -7,14 +7,17 @@ android {
 }
 
 dependencies {
-    api(libs.junit)
-    api(libs.robolectric)
-
     implementation(projects.core.logging.api)
     implementation(projects.core.preference.api)
     implementation(projects.core.preference.impl)
 
-    api(libs.koin.core)
-    api(libs.mockito.core)
-    api(libs.mockito.kotlin)
+    implementation(libs.kotlin.test.junit)
+    implementation(libs.robolectric)
+
+    implementation(libs.mockito.kotlin)
+}
+
+codeCoverage {
+    branchCoverage = 0
+    lineCoverage = 0
 }

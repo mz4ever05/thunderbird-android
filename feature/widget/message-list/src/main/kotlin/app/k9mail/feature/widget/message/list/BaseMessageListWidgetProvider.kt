@@ -9,9 +9,9 @@ import android.widget.RemoteViews
 import androidx.core.app.PendingIntentCompat
 import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.activity.MessageCompose
-import com.fsck.k9.activity.MessageList
-import com.fsck.k9.activity.MessageList.Companion.intentDisplaySearch
-import net.thunderbird.feature.search.legacy.SearchAccount.Companion.createUnifiedInboxAccount
+import com.fsck.k9.activity.MessageHomeActivity
+import com.fsck.k9.activity.MessageHomeActivity.Companion.intentDisplaySearch
+import net.thunderbird.feature.search.legacy.SearchAccount.Companion.createUnifiedFoldersSearch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -47,14 +47,14 @@ abstract class BaseMessageListWidgetProvider : AppWidgetProvider(), KoinComponen
         val composeAction = composeActionPendingIntent(context)
         views.setOnClickPendingIntent(R.id.new_message, composeAction)
 
-        val headerClickAction = viewUnifiedInboxPendingIntent(context)
+        val headerClickAction = viewUnifiedFoldersPendingIntent(context)
         views.setOnClickPendingIntent(R.id.top_controls, headerClickAction)
 
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
     private fun viewActionTemplatePendingIntent(context: Context): PendingIntent {
-        val intent = MessageList.actionDisplayMessageTemplateIntent(
+        val intent = MessageHomeActivity.actionDisplayMessageTemplateIntent(
             context,
             openInUnifiedInbox = true,
             messageViewOnly = true,
@@ -62,14 +62,14 @@ abstract class BaseMessageListWidgetProvider : AppWidgetProvider(), KoinComponen
         return PendingIntentCompat.getActivity(context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT, true)!!
     }
 
-    private fun viewUnifiedInboxPendingIntent(context: Context): PendingIntent {
-        val unifiedInboxAccount = createUnifiedInboxAccount(
-            unifiedInboxTitle = coreResourceProvider.searchUnifiedInboxTitle(),
-            unifiedInboxDetail = coreResourceProvider.searchUnifiedInboxDetail(),
+    private fun viewUnifiedFoldersPendingIntent(context: Context): PendingIntent {
+        val unifiedFoldersSearch = createUnifiedFoldersSearch(
+            title = coreResourceProvider.searchUnifiedFoldersTitle(),
+            detail = coreResourceProvider.searchUnifiedFoldersDetail(),
         )
         val intent = intentDisplaySearch(
             context = context,
-            search = unifiedInboxAccount.relatedSearch,
+            search = unifiedFoldersSearch.relatedSearch,
             noThreading = true,
             newTask = true,
             clearTop = true,

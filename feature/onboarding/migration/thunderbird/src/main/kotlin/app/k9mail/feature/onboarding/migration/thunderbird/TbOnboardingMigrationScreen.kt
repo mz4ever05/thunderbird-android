@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -39,18 +40,20 @@ import app.k9mail.core.ui.compose.designsystem.atom.text.TextBodyMedium
 import app.k9mail.core.ui.compose.designsystem.atom.text.TextBodySmall
 import app.k9mail.core.ui.compose.designsystem.atom.text.TextTitleMedium
 import app.k9mail.core.ui.compose.designsystem.template.ResponsiveWidthContainer
-import app.k9mail.core.ui.compose.theme2.MainTheme
+import app.k9mail.core.ui.compose.designsystem.template.Scaffold
 import app.k9mail.feature.account.common.ui.AppTitleTopHeader
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import net.thunderbird.core.common.provider.BrandNameProvider
 import net.thunderbird.core.logging.legacy.Log
-import net.thunderbird.core.ui.compose.common.modifier.testTagAsResourceId
+import net.thunderbird.core.ui.compose.theme2.MainTheme
+import net.thunderbird.feature.thundermail.ui.component.ThundermailButtonPanel
 import org.koin.compose.koinInject
 
 @Composable
 internal fun TbOnboardingMigrationScreen(
     onQrCodeScan: () -> Unit,
+    onThundermailClick: () -> Unit,
     onAddAccount: () -> Unit,
     onImport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -58,52 +61,62 @@ internal fun TbOnboardingMigrationScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    ResponsiveWidthContainer(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(modifier),
-    ) { contentPadding ->
-        Column(
+    Scaffold(
+        modifier = modifier,
+    ) { innerPadding ->
+        ResponsiveWidthContainer(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(contentPadding),
-        ) {
-            AppTitleTopHeader(
-                title = brandNameProvider.brandName,
-            )
-
-            Spacer(
+                .padding(innerPadding),
+        ) { contentPadding ->
+            Column(
                 modifier = Modifier
-                    .height(MainTheme.spacings.double)
-                    .weight(1f),
-            )
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(contentPadding),
+            ) {
+                AppTitleTopHeader(
+                    title = brandNameProvider.brandName,
+                )
 
-            AlreadyUsingThunderbirdCard(onQrCodeScan)
+                Spacer(
+                    modifier = Modifier
+                        .height(MainTheme.spacings.double)
+                        .weight(1f),
+                )
 
-            Spacer(modifier = Modifier.height(MainTheme.spacings.triple))
+                ThundermailButtonPanel(
+                    onThundermailClick = onThundermailClick,
+                    onScanQrCodeClick = onQrCodeScan,
+                    modifier = Modifier.padding(bottom = MainTheme.spacings.quadruple),
+                )
 
-            TextGroup(title = stringResource(R.string.onboarding_migration_thunderbird_new_account_title)) {
-                ButtonOutlined(
-                    text = stringResource(R.string.onboarding_migration_thunderbird_new_account_button_text),
-                    onClick = onAddAccount,
-                    modifier = Modifier.testTagAsResourceId("onboarding_migration_new_account_button"),
+                AlreadyUsingThunderbirdCard(onQrCodeScan)
+
+                Spacer(modifier = Modifier.height(MainTheme.spacings.triple))
+
+                TextGroup(title = stringResource(R.string.onboarding_migration_thunderbird_new_account_title)) {
+                    ButtonOutlined(
+                        text = stringResource(R.string.onboarding_migration_thunderbird_new_account_button_text),
+                        onClick = onAddAccount,
+                        modifier = Modifier.testTag("onboarding_migration_new_account_button"),
+                    )
+                }
+
+                TextGroup(title = stringResource(R.string.onboarding_migration_thunderbird_import_title)) {
+                    ButtonOutlined(
+                        text = stringResource(R.string.onboarding_migration_thunderbird_import_button_text),
+                        onClick = onImport,
+                        modifier = Modifier.testTag("ImportButton"),
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier
+                        .height(MainTheme.spacings.double)
+                        .weight(1f),
                 )
             }
-
-            TextGroup(title = stringResource(R.string.onboarding_migration_thunderbird_import_title)) {
-                ButtonOutlined(
-                    text = stringResource(R.string.onboarding_migration_thunderbird_import_button_text),
-                    onClick = onImport,
-                    modifier = Modifier.testTagAsResourceId("ImportButton"),
-                )
-            }
-
-            Spacer(
-                modifier = Modifier
-                    .height(MainTheme.spacings.double)
-                    .weight(1f),
-            )
         }
     }
 }
@@ -136,8 +149,7 @@ private fun AlreadyUsingThunderbirdCard(onQrCodeScan: () -> Unit) {
         ButtonFilled(
             text = stringResource(R.string.onboarding_migration_thunderbird_qr_code_import_button_text),
             onClick = onQrCodeScan,
-            modifier = Modifier
-                .testTagAsResourceId("QrCodeImportButton")
+            modifier = Modifier.testTag("QrCodeImportButton")
                 .align(Alignment.CenterHorizontally),
         )
 

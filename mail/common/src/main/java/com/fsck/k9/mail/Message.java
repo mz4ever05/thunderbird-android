@@ -8,10 +8,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import net.thunderbird.core.common.mail.Flag;
 import net.thunderbird.core.logging.legacy.Log;
 import com.fsck.k9.mail.filter.CountingOutputStream;
 import com.fsck.k9.mail.filter.EOLConvertingOutputStream;
 import org.jetbrains.annotations.NotNull;
+import net.thunderbird.core.common.exception.MessagingException;
 
 
 public abstract class Message implements Part, Body {

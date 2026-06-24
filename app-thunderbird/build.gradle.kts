@@ -1,14 +1,11 @@
 plugins {
     id(ThunderbirdPlugins.App.androidCompose)
     alias(libs.plugins.dependency.guard)
-    id("thunderbird.app.version.info")
-    id("thunderbird.quality.badging")
+    alias(libs.plugins.tb.app.badging)
+    alias(libs.plugins.tb.app.versioning)
 }
 
-val testCoverageEnabled: Boolean by extra
-if (testCoverageEnabled) {
-    apply(plugin = "jacoco")
-}
+val testCoverageEnabled = hasProperty("testCoverageEnabled")
 
 android {
     namespace = "net.thunderbird.android"
@@ -18,7 +15,7 @@ android {
         testApplicationId = "net.thunderbird.android.tests"
 
         versionCode = 4
-        versionName = "13.0"
+        versionName = "21.0"
 
         buildConfigField("String", "CLIENT_INFO_APP_NAME", "\"Thunderbird for Android\"")
     }
@@ -29,6 +26,7 @@ android {
             "ar",
             "be",
             "bg",
+            "br",
             "ca",
             "co",
             "cs",
@@ -47,6 +45,7 @@ android {
             "fr",
             "fy",
             "ga",
+            "gd",
             "gl",
             "hr",
             "hu",
@@ -66,11 +65,12 @@ android {
             "pt-rPT",
             "ro",
             "ru",
-            "sl",
             "sk",
+            "sl",
             "sq",
             "sr",
             "sv",
+            "ta-rIN",
             "tr",
             "uk",
             "vi",
@@ -88,26 +88,16 @@ android {
     }
 
     buildTypes {
-        debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-SNAPSHOT"
-
-            isMinifyEnabled = false
-            isShrinkResources = false
-            isDebuggable = true
-
-            buildConfigField("String", "GLEAN_RELEASE_CHANNEL", "null")
-        }
-
+        val isCI = project.findProperty("ci") == "true"
         release {
             signingConfig = signingConfigs.getByType(SigningType.TB_RELEASE)
 
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !isCI
+            isShrinkResources = !isCI
             isDebuggable = false
 
             proguardFiles(
-                getDefaultProguardFile("proguard-android.txt"),
+                getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
 
@@ -115,19 +105,21 @@ android {
         }
 
         create("beta") {
+            initWith(getByName("release"))
+
             signingConfig = signingConfigs.getByType(SigningType.TB_BETA)
 
             applicationIdSuffix = ".beta"
-            versionNameSuffix = "b1"
+            versionNameSuffix = "b0"
 
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !isCI
+            isShrinkResources = !isCI
             isDebuggable = false
 
             matchingFallbacks += listOf("release")
 
             proguardFiles(
-                getDefaultProguardFile("proguard-android.txt"),
+                getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
 
@@ -135,24 +127,40 @@ android {
         }
 
         create("daily") {
+            initWith(getByName("release"))
+
             signingConfig = signingConfigs.getByType(SigningType.TB_DAILY)
 
             applicationIdSuffix = ".daily"
             versionNameSuffix = "a1"
 
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !isCI
+            isShrinkResources = !isCI
             isDebuggable = false
 
             matchingFallbacks += listOf("release")
 
             proguardFiles(
-                getDefaultProguardFile("proguard-android.txt"),
+                getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
 
             // See https://bugzilla.mozilla.org/show_bug.cgi?id=1918151
             buildConfigField("String", "GLEAN_RELEASE_CHANNEL", "\"nightly\"")
+        }
+
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-SNAPSHOT"
+
+            enableUnitTestCoverage = testCoverageEnabled
+            enableAndroidTestCoverage = testCoverageEnabled
+
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = true
+
+            buildConfigField("String", "GLEAN_RELEASE_CHANNEL", "null")
         }
     }
 
@@ -169,7 +177,6 @@ android {
         }
     }
 
-    @Suppress("UnstableApiUsage")
     bundle {
         language {
             // Don't split by language. Otherwise our in-app language switcher won't work.
@@ -209,7 +216,8 @@ val fullReleaseImplementation by configurations.creating
 
 dependencies {
     implementation(projects.appCommon)
-    implementation(projects.core.ui.compose.theme2.thunderbird)
+    implementation(projects.core.ui.compose.common)
+    implementation(projects.core.ui.compose.theme2)
     implementation(projects.core.ui.legacy.theme2.thunderbird)
     implementation(projects.feature.launcher)
 
@@ -219,7 +227,9 @@ dependencies {
     implementation(projects.core.featureflag)
 
     implementation(projects.feature.account.settings.impl)
-    implementation(projects.feature.mail.message.list)
+    implementation(projects.feature.mail.message.list.api)
+    implementation(projects.feature.mail.message.list.internal)
+    implementation(projects.feature.mail.message.reader.api)
 
     implementation(projects.feature.widget.messageList)
     implementation(projects.feature.widget.messageListGlance)
@@ -235,7 +245,9 @@ dependencies {
 
     implementation(projects.feature.autodiscovery.api)
     debugImplementation(projects.backend.demo)
+    "dailyImplementation"(projects.backend.demo)
     debugImplementation(projects.feature.autodiscovery.demo)
+    "dailyImplementation"(projects.feature.autodiscovery.demo)
 
     "fossImplementation"(projects.feature.funding.link)
 
@@ -246,15 +258,19 @@ dependencies {
 
     implementation(projects.feature.onboarding.migration.thunderbird)
     implementation(projects.feature.migration.launcher.thunderbird)
+    implementation(projects.feature.thundermail.api)
+    implementation(projects.feature.thundermail.thunderbird)
 
     // TODO remove once OAuth ids have been moved from TBD to TBA
-    "betaImplementation"(libs.appauth)
     releaseImplementation(libs.appauth)
 
     // Required for DependencyInjectionTest
     testImplementation(projects.feature.account.api)
     testImplementation(projects.feature.account.common)
+    testImplementation(projects.feature.thundermail.internal.common)
     testImplementation(projects.plugins.openpgpApiLib.openpgpApi)
+    testImplementation(projects.feature.changelog.internal)
+
     testImplementation(libs.appauth)
 }
 
@@ -277,4 +293,9 @@ tasks.register("printConfigurations") {
             }
         }
     }
+}
+
+codeCoverage {
+    branchCoverage = 0
+    lineCoverage = 25
 }

@@ -4,19 +4,18 @@ import android.content.res.Resources
 import android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import com.fsck.k9.K9
 import com.fsck.k9.helper.ContactNameProvider
 import com.fsck.k9.mail.Address
 import com.fsck.k9.ui.R
 import net.thunderbird.core.android.account.Identity
-import net.thunderbird.core.android.account.LegacyAccount
-import net.thunderbird.core.preference.GeneralSettingsManager
+import net.thunderbird.core.android.account.LegacyAccountDto
+import net.thunderbird.core.preference.display.visualSettings.message.list.MessageListPreferencesManager
 
 /**
  * Get the display name for a recipient to be shown in the message view screen.
  */
 internal interface MessageViewRecipientFormatter {
-    fun getDisplayName(address: Address, account: LegacyAccount): CharSequence
+    fun getDisplayName(address: Address, account: LegacyAccountDto): CharSequence
 }
 
 internal class RealMessageViewRecipientFormatter(
@@ -26,7 +25,7 @@ internal class RealMessageViewRecipientFormatter(
     private val contactNameColor: Int?,
     private val meText: String,
 ) : MessageViewRecipientFormatter {
-    override fun getDisplayName(address: Address, account: LegacyAccount): CharSequence {
+    override fun getDisplayName(address: Address, account: LegacyAccountDto): CharSequence {
         val identity = account.findIdentity(address)
         if (identity != null) {
             return getIdentityName(identity, account)
@@ -41,7 +40,7 @@ internal class RealMessageViewRecipientFormatter(
         }
     }
 
-    private fun getIdentityName(identity: Identity, account: LegacyAccount): String {
+    private fun getIdentityName(identity: Identity, account: LegacyAccountDto): String {
         return if (account.identities.size == 1) {
             meText
         } else {
@@ -80,16 +79,15 @@ internal class RealMessageViewRecipientFormatter(
 internal fun createMessageViewRecipientFormatter(
     contactNameProvider: ContactNameProvider,
     resources: Resources,
-    generalSettingsManager: GeneralSettingsManager,
+    messageListPreferencesManager: MessageListPreferencesManager,
 ): MessageViewRecipientFormatter {
+    val messageListSettings = messageListPreferencesManager.getConfig()
     return RealMessageViewRecipientFormatter(
         contactNameProvider = contactNameProvider,
-        showCorrespondentNames = generalSettingsManager.getConfig().display.isShowCorrespondentNames,
-        showContactNames = generalSettingsManager.getConfig().display.isShowContactName,
-        contactNameColor = if (
-            generalSettingsManager.getConfig().display.isChangeContactNameColor
-        ) {
-            K9.contactNameColor
+        showCorrespondentNames = messageListSettings.isShowCorrespondentNames,
+        showContactNames = messageListSettings.isShowContactName,
+        contactNameColor = if (messageListSettings.isChangeContactNameColor) {
+            messageListSettings.contactNameColor
         } else {
             null
         },

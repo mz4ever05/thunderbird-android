@@ -2,6 +2,13 @@ plugins {
     id(ThunderbirdPlugins.Library.kmp)
 }
 
-android {
-    namespace = "net.thunderbird.core.outcome"
+kotlin {
+    android {
+        namespace = "net.thunderbird.core.outcome"
+    }
+}
+
+codeCoverage {
+    branchCoverage = 28
+    lineCoverage = 53
 }

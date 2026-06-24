@@ -11,19 +11,19 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import app.k9mail.feature.settings.importing.R
-import com.fsck.k9.ui.base.K9Activity
+import com.fsck.k9.ui.base.BaseActivity
 import com.google.android.material.textview.MaterialTextView
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.launch
-import net.thunderbird.core.android.account.AccountManager
+import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 @Deprecated("Remove once import used the new oauth flow")
-class OAuthFlowActivity : K9Activity() {
+class OAuthFlowActivity : BaseActivity() {
     private val authViewModel: AuthViewModel by viewModel()
-    private val accountManager: AccountManager by inject()
+    private val accountManager: LegacyAccountDtoManager by inject()
 
     private lateinit var errorText: MaterialTextView
     private lateinit var signInButton: Button

@@ -27,7 +27,7 @@ class ValidateLogger {
     @Test
     fun `no class should use Timber logging`() {
         projectScope.files
-            .filterNot { it.hasNameMatching("ConsoleLogSink.android|ConsoleLogSinkTest.android".toRegex()) }
+            .filterNot { it.hasNameMatching("ConsoleLogSink.android|ConsoleLogSinkTest.android|PlatformInitializer.android".toRegex()) }
             .filterNot {
                 // Exclude legacy code that still uses Timber
                 it.hasNameMatching("LogFileWriter|FileLoggerTree|K9".toRegex())

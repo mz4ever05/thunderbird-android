@@ -35,5 +35,7 @@ internal object StorageMigrations {
         if (oldVersion < 26) StorageMigrationTo26(db, migrationsHelper).fixIdentities()
         if (oldVersion < 27) StorageMigrationTo27(db, migrationsHelper).addAvatarMonogram()
         if (oldVersion < 28) StorageMigrationTo28(db, migrationsHelper).ensureAvatarSet()
+        if (oldVersion < 29) StorageMigrationTo29(db, migrationsHelper).renameAutoSelectFolderPreference()
+        if (oldVersion < 30) StorageMigrationTo30(db, migrationsHelper).migrateAnimationSetting()
     }
 }

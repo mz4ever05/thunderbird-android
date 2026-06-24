@@ -8,9 +8,10 @@ import com.fsck.k9.backend.api.BackendStorage
 import com.fsck.k9.backend.api.SyncConfig
 import com.fsck.k9.backend.api.SyncListener
 import com.fsck.k9.mail.BodyFactory
-import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.Part
+import net.thunderbird.core.common.mail.Flag
+import net.thunderbird.feature.mail.folder.api.FolderPathDelimiter
 
 class DemoBackend(
     private val backendStorage: BackendStorage,
@@ -31,8 +32,8 @@ class DemoBackend(
     override val supportsFolderSubscriptions: Boolean = false
     override val isPushCapable: Boolean = false
 
-    override fun refreshFolderList() {
-        commandRefreshFolderList.refreshFolderList()
+    override fun refreshFolderList(): FolderPathDelimiter? {
+        return commandRefreshFolderList.refreshFolderList()
     }
 
     override fun sync(folderServerId: String, syncConfig: SyncConfig, listener: SyncListener) {

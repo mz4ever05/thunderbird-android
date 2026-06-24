@@ -20,21 +20,23 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import net.thunderbird.core.android.account.AccountManager
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
+import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import net.thunderbird.core.android.network.ConnectivityChangeListener
 import net.thunderbird.core.android.network.ConnectivityManager
 import net.thunderbird.core.logging.legacy.Log
 import net.thunderbird.core.preference.BackgroundOps
 import net.thunderbird.core.preference.BackgroundSync
 import net.thunderbird.core.preference.GeneralSettingsManager
+import net.thunderbird.feature.account.AccountId
+import net.thunderbird.feature.account.AccountIdFactory
 
 /**
  * Starts and stops [AccountPushController]s as necessary. Manages the Push foreground service.
  */
 @Suppress("LongParameterList")
 class PushController internal constructor(
-    private val accountManager: AccountManager,
+    private val accountManager: LegacyAccountDtoManager,
     private val generalSettingsManager: GeneralSettingsManager,
     private val backendManager: BackendManager,
     private val pushServiceManager: PushServiceManager,
@@ -85,7 +87,7 @@ class PushController internal constructor(
 
         coroutineScope.launch(coroutineDispatcher) {
             for (account in accountManager.getAccounts()) {
-                folderRepository.setPushDisabled(account)
+                folderRepository.setPushDisabled(account.id)
             }
         }
     }
@@ -138,10 +140,10 @@ class PushController internal constructor(
         launchUpdatePushers()
     }
 
-    private fun onBackendChanged(account: LegacyAccount) {
+    private fun onBackendChanged(accountId: AccountId) {
         coroutineScope.launch(coroutineDispatcher) {
             val accountPushController = synchronized(lock) {
-                pushers.remove(account.uuid)
+                pushers.remove(accountId.toString())
             }
 
             accountPushController?.stop()
@@ -196,10 +198,11 @@ class PushController internal constructor(
             if (startPushAccountUuids.isNotEmpty()) {
                 Log.v("..Starting PushController for accounts: %s", startPushAccountUuids)
                 for (accountUuid in startPushAccountUuids) {
-                    val account = accountManager.getAccount(accountUuid) ?: error("Account not found: $accountUuid")
-                    pushers[accountUuid] = accountPushControllerFactory.create(account).also { accountPushController ->
-                        accountPushController.start()
-                    }
+                    val accountId = AccountIdFactory.of(accountUuid)
+                    pushers[accountUuid] =
+                        accountPushControllerFactory.create(accountId).also { accountPushController ->
+                            accountPushController.start()
+                        }
                 }
             }
 
@@ -241,17 +244,17 @@ class PushController internal constructor(
         }
     }
 
-    private fun getPushCapableAccounts(): Set<LegacyAccount> {
+    private fun getPushCapableAccounts(): Set<LegacyAccountDto> {
         return accountManager.getAccounts()
             .asSequence()
-            .filter { account -> backendManager.getBackend(account).isPushCapable }
+            .filter { account -> backendManager.getBackend(account.id).isPushCapable }
             .toSet()
     }
 
-    private fun getPushAccounts(): Set<LegacyAccount> {
+    private fun getPushAccounts(): Set<LegacyAccountDto> {
         return getPushCapableAccounts()
             .asSequence()
-            .filter { account -> folderRepository.hasPushEnabledFolder(account) }
+            .filter { account -> folderRepository.hasPushEnabledFolder(account.id) }
             .toSet()
     }
 
@@ -299,7 +302,7 @@ class PushController internal constructor(
         }
     }
 
-    private fun updatePushEnabledListeners(accounts: Set<LegacyAccount>) {
+    private fun updatePushEnabledListeners(accounts: Set<LegacyAccountDto>) {
         synchronized(lock) {
             // Stop listening to push enabled changes in accounts we no longer monitor
             val accountUuids = accounts.mapToSet { it.uuid }
@@ -318,7 +321,7 @@ class PushController internal constructor(
             for (account in newAccounts) {
                 pushEnabledCollectorJobs[account.uuid] = coroutineScope.launch(coroutineDispatcher) {
                     Log.v("..Starting to listen for push enabled changes in account: %s", account.uuid)
-                    folderRepository.hasPushEnabledFolderFlow(account)
+                    folderRepository.hasPushEnabledFolderFlow(account.id)
                         .collect {
                             updatePushers()
                         }

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import java.util.concurrent.Executors
 import kotlin.time.ExperimentalTime
+import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
 
 val coreNotificationModule = module {
@@ -25,6 +26,7 @@ val coreNotificationModule = module {
             notificationChannelManager = get(),
             resourceProvider = get(),
             generalSettingsManager = get(),
+            logger = get(),
         )
     }
     single {
@@ -53,7 +55,13 @@ val coreNotificationModule = module {
         )
     }
     single {
-        SyncNotificationController(notificationHelper = get(), actionBuilder = get(), resourceProvider = get())
+        SyncNotificationController(
+            notificationHelper = get(),
+            actionBuilder = get(),
+            resourceProvider = get(),
+            outboxFolderManager = get(),
+            iconResourceProvider = get(),
+        )
     }
     single {
         SendFailedNotificationController(
@@ -61,6 +69,7 @@ val coreNotificationModule = module {
             actionBuilder = get(),
             resourceProvider = get(),
             generalSettingsManager = get(),
+            outboxFolderManager = get(),
         )
     }
     single {
@@ -86,11 +95,11 @@ val coreNotificationModule = module {
         NotificationContentCreator(
             resourceProvider = get(),
             contactRepository = get(),
-            generalSettingsManager = get(),
+            messageListPreferencesManager = get(),
         )
     }
     factory { BaseNotificationDataCreator() }
-    factory { SingleMessageNotificationDataCreator() }
+    factory { SingleMessageNotificationDataCreator(interactionPreferences = get(), notificationPreference = get()) }
     factory {
         SummaryNotificationDataCreator(
             singleMessageNotificationDataCreator = get(),
@@ -103,6 +112,8 @@ val coreNotificationModule = module {
             actionCreator = get(),
             resourceProvider = get(),
             lockScreenNotificationCreator = get(),
+            notificationPreferenceManager = get(),
+            application = androidApplication(),
         )
     }
     factory {
@@ -121,6 +132,8 @@ val coreNotificationModule = module {
             resourceProvider = get(),
             notificationChannelManager = get(),
             notificationManager = get(),
+            iconResourceProvider = get(),
+            logger = get(),
         )
     }
     single {
@@ -129,6 +142,7 @@ val coreNotificationModule = module {
             localStoreProvider = get(),
             messageStoreManager = get(),
             notificationContentCreator = get(),
+            generalSettingsManager = get(),
         )
     }
     factory { NotificationLightDecoder() }

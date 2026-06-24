@@ -1,9 +1,7 @@
 package com.fsck.k9.autocrypt
 
 import com.fsck.k9.mail.Address
-import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.Message
-import com.fsck.k9.mail.MessagingException
 import com.fsck.k9.mail.internet.MimeBodyPart
 import com.fsck.k9.mail.internet.MimeHeader
 import com.fsck.k9.mail.internet.MimeMessage
@@ -12,6 +10,8 @@ import com.fsck.k9.mail.internet.MimeMultipart
 import com.fsck.k9.mail.internet.TextBody
 import com.fsck.k9.mailstore.BinaryMemoryBody
 import java.util.Date
+import net.thunderbird.core.common.exception.MessagingException
+import net.thunderbird.core.common.mail.Flag
 import net.thunderbird.core.preference.GeneralSettingsManager
 
 class AutocryptTransferMessageCreator(

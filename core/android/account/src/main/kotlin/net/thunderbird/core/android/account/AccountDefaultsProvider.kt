@@ -8,14 +8,14 @@ interface AccountDefaultsProvider {
      *
      * This method should only be called when creating a new account.
      */
-    fun applyDefaults(account: LegacyAccount)
+    fun applyDefaults(account: LegacyAccountDto)
 
     /**
      * Apply any additional default values to the account.
      *
      * This method should be called when updating an existing account.
      */
-    fun applyOverwrites(account: LegacyAccount, storage: Storage)
+    fun applyOverwrites(account: LegacyAccountDto, storage: Storage)
 
     companion object {
         const val DEFAULT_MAXIMUM_AUTO_DOWNLOAD_MESSAGE_SIZE = 131072
@@ -41,7 +41,7 @@ interface AccountDefaultsProvider {
 
         const val DEFAULT_STRIP_SIGNATURE = true
 
-        const val DEFAULT_SYNC_INTERVAL = 60
+        const val DEFAULT_SYNC_INTERVAL = 15
 
         /**
          * Specifies how many messages will be shown in a folder by default. This number is set

@@ -1,19 +1,20 @@
 package net.thunderbird.feature.notification.api.ui.style.builder
 
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import net.thunderbird.feature.notification.api.ui.style.InAppNotificationStyle
 import net.thunderbird.feature.notification.api.ui.style.InAppNotificationStyle.BannerGlobalNotification
 import net.thunderbird.feature.notification.api.ui.style.InAppNotificationStyle.BannerInlineNotification
 import net.thunderbird.feature.notification.api.ui.style.InAppNotificationStyle.DialogNotification
+import net.thunderbird.feature.notification.api.ui.style.InAppNotificationStyle.SnackbarNotification
+import net.thunderbird.feature.notification.api.ui.style.NotificationPriority
 import net.thunderbird.feature.notification.api.ui.style.NotificationStyleMarker
+import net.thunderbird.feature.notification.api.ui.style.SnackbarDuration
 
 /**
  * Builder for creating [InAppNotificationStyle] instances.
  * This interface defines the methods available for configuring the style of an in-app notification.
  */
 class InAppNotificationStyleBuilder internal constructor() {
-    private var styles = mutableListOf<InAppNotificationStyle>()
+    private var style: InAppNotificationStyle = InAppNotificationStyle.Undefined
 
     /**
      * Use inline error banners to surface issues that must be resolved before the user can continue
@@ -39,7 +40,7 @@ class InAppNotificationStyleBuilder internal constructor() {
     @NotificationStyleMarker
     fun bannerInline() {
         checkSingleStyleEntry<BannerInlineNotification>()
-        styles += BannerInlineNotification
+        style = BannerInlineNotification
     }
 
     /**
@@ -67,9 +68,9 @@ class InAppNotificationStyleBuilder internal constructor() {
      * a [DialogNotification] in these cases)
      */
     @NotificationStyleMarker
-    fun bannerGlobal() {
+    fun bannerGlobal(priority: NotificationPriority = NotificationPriority.Min) {
         checkSingleStyleEntry<BannerGlobalNotification>()
-        styles += BannerGlobalNotification
+        style = BannerGlobalNotification(priority = priority)
     }
 
     /**
@@ -88,29 +89,9 @@ class InAppNotificationStyleBuilder internal constructor() {
      * [BannerGlobalNotification] for that context)
      */
     @NotificationStyleMarker
-    fun snackbar(duration: Duration = 10.seconds) {
-        checkSingleStyleEntry<InAppNotificationStyle.SnackbarNotification>()
-        styles += InAppNotificationStyle.SnackbarNotification(duration)
-    }
-
-    /**
-     * Use to inform the user about a required permission needed to enable or complete a key feature of the app.
-     *
-     * ### USAGE GUIDELINES
-     *
-     * #### Use for:
-     * - Requesting background activity permission from the user
-     * - Clearly and succinctly explaining why the permission is needed and how it affects the app experience
-     *
-     * #### Do not use for:
-     * - Displaying errors
-     * - Requesting contacts permission, as it does not critically impact app functionality
-     * - Requesting notification permission, which should follow the system-standard prompt or alternative pattern
-     */
-    @NotificationStyleMarker
-    fun bottomSheet() {
-        checkSingleStyleEntry<InAppNotificationStyle.BottomSheetNotification>()
-        styles += InAppNotificationStyle.BottomSheetNotification
+    fun snackbar(duration: SnackbarDuration = SnackbarDuration.Short) {
+        checkSingleStyleEntry<SnackbarNotification>()
+        style = SnackbarNotification(duration)
     }
 
     /**
@@ -132,7 +113,7 @@ class InAppNotificationStyleBuilder internal constructor() {
     @NotificationStyleMarker
     fun dialog() {
         checkSingleStyleEntry<DialogNotification>()
-        styles += DialogNotification
+        style = DialogNotification
     }
 
     /**
@@ -140,16 +121,17 @@ class InAppNotificationStyleBuilder internal constructor() {
      *
      * @return The constructed [InAppNotificationStyle].
      */
-    fun build(): List<InAppNotificationStyle> {
-        check(styles.isNotEmpty()) {
-            "You must add at least one in-app notification style."
+    fun build(): InAppNotificationStyle {
+        check(style != InAppNotificationStyle.Undefined) {
+            "You must pick one in-app notification style."
         }
-        return styles.takeUnless { it.isEmpty() } ?: InAppNotificationStyle.Undefined
+        return style
     }
 
     private inline fun <reified T> checkSingleStyleEntry() {
-        check(styles.none { it is T }) {
-            "An in-app notification can only have at most one type of ${T::class.simpleName} style"
+        check(style == InAppNotificationStyle.Undefined) {
+            "An in-app notification can only have one type of style. " +
+                "Current style is ${style::class.simpleName}, trying to set ${T::class.simpleName}."
         }
     }
 }

@@ -12,7 +12,9 @@ internal fun AccountViewPreview() {
         AccountView(
             account = MAIL_DISPLAY_ACCOUNT,
             onClick = {},
+            onAvatarClick = {},
             showAccountSelection = true,
+            isShowAnimations = true,
         )
     }
 }
@@ -24,7 +26,9 @@ internal fun AccountViewWithoutAccountPreview() {
         AccountView(
             account = MAIL_DISPLAY_ACCOUNT,
             onClick = {},
+            onAvatarClick = {},
             showAccountSelection = false,
+            isShowAnimations = true,
         )
     }
 }

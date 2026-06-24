@@ -78,7 +78,6 @@
     <string name="search_results">खोज के रिज़ल्ट</string>
     <string name="send_action">भेजें</string>
     <string name="read_receipt">पढ़ा रसीद</string>
-    <string name="actionbar_selected"><xliff:g id="selection_count">%d</xliff:g> चुने गए</string>
     <string name="search_everywhere_action">हर जगह खोजें</string>
     <string name="send_alternate_action">शेयर करें</string>
     <string name="accounts_title">अकाउंट</string>
@@ -159,5 +158,6 @@
     <string name="size_format_gigabytes">%.1f जीबी</string>
     <string name="debug_export_logs_failure">एक्सपोर्ट पूरा नहीं हुआ।</string>
     <string name="notification_action_delete_all">सब मिटाएं</string>
-    <string name="about_app_authors_thunderbird">Thunderbird Mobile Team</string>
+    <string name="about_app_authors_thunderbird">थंडरबर्ड मोबाइल टीम</string>
+    <string name="open_camera">कैमरा खोलें</string>
 </resources>

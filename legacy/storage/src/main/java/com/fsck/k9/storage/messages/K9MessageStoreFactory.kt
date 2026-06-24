@@ -6,17 +6,19 @@ import com.fsck.k9.mailstore.LocalStoreProvider
 import com.fsck.k9.mailstore.NotifierMessageStore
 import com.fsck.k9.mailstore.StorageFilesProviderFactory
 import com.fsck.k9.message.extractors.BasicPartInfoExtractor
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.preference.GeneralSettingsManager
+import net.thunderbird.feature.mail.message.list.LocalMessageUidPrefixProvider
 
 class K9MessageStoreFactory(
     private val localStoreProvider: LocalStoreProvider,
     private val storageFilesProviderFactory: StorageFilesProviderFactory,
     private val basicPartInfoExtractor: BasicPartInfoExtractor,
     private val generalSettingsManager: GeneralSettingsManager,
+    private val localMessageUidPrefixProvider: LocalMessageUidPrefixProvider,
 ) : MessageStoreFactory {
 
-    override fun create(account: LegacyAccount): ListenableMessageStore {
+    override fun create(account: LegacyAccountDto): ListenableMessageStore {
         val localStore = localStoreProvider.getInstance(account)
         if (account.incomingServerSettings.host.isGoogle() ||
             account.outgoingServerSettings.host.isGoogle()
@@ -30,6 +32,8 @@ class K9MessageStoreFactory(
             storageFilesProvider,
             basicPartInfoExtractor,
             generalSettingsManager,
+            account.id,
+            localMessageUidPrefixProvider,
         )
         val notifierMessageStore = NotifierMessageStore(messageStore, localStore)
         return ListenableMessageStore(notifierMessageStore)

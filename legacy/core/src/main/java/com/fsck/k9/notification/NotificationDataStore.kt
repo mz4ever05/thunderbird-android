@@ -1,7 +1,8 @@
 package com.fsck.k9.notification
 
 import app.k9mail.legacy.message.controller.MessageReference
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
+import net.thunderbird.core.preference.LockScreenNotificationVisibility
 
 internal const val MAX_NUMBER_OF_NEW_MESSAGE_NOTIFICATIONS = 9
 
@@ -16,25 +17,35 @@ internal class NotificationDataStore {
     private val notificationDataMap = mutableMapOf<String, NotificationData>()
 
     @Synchronized
-    fun isAccountInitialized(account: LegacyAccount): Boolean {
+    fun isAccountInitialized(account: LegacyAccountDto): Boolean {
         return notificationDataMap[account.uuid] != null
     }
 
     @Synchronized
     fun initializeAccount(
-        account: LegacyAccount,
+        account: LegacyAccountDto,
         activeNotifications: List<NotificationHolder>,
         inactiveNotifications: List<InactiveNotificationHolder>,
+        lockScreenNotificationVisibility: LockScreenNotificationVisibility,
     ): NotificationData {
         require(activeNotifications.size <= MAX_NUMBER_OF_NEW_MESSAGE_NOTIFICATIONS)
 
-        return NotificationData(account, activeNotifications, inactiveNotifications).also { notificationData ->
+        return NotificationData(
+            account,
+            activeNotifications,
+            inactiveNotifications,
+            lockScreenNotificationVisibility,
+        ).also { notificationData ->
             notificationDataMap[account.uuid] = notificationData
         }
     }
 
     @Synchronized
-    fun addNotification(account: LegacyAccount, content: NotificationContent, timestamp: Long): AddNotificationResult? {
+    fun addNotification(
+        account: LegacyAccountDto,
+        content: NotificationContent,
+        timestamp: Long,
+    ): AddNotificationResult? {
         val notificationData = getNotificationData(account)
         val messageReference = content.messageReference
 
@@ -111,7 +122,7 @@ internal class NotificationDataStore {
     @Suppress("LongMethod", "ReturnCount")
     @Synchronized
     fun removeNotifications(
-        account: LegacyAccount,
+        account: LegacyAccountDto,
         selector: (List<MessageReference>) -> List<MessageReference>,
     ): RemoveNotificationsResult? {
         var notificationData = getNotificationData(account)
@@ -196,11 +207,11 @@ internal class NotificationDataStore {
     }
 
     @Synchronized
-    fun clearNotifications(account: LegacyAccount) {
+    fun clearNotifications(account: LegacyAccountDto) {
         notificationDataMap.remove(account.uuid)
     }
 
-    private fun getNotificationData(account: LegacyAccount): NotificationData {
+    private fun getNotificationData(account: LegacyAccountDto): NotificationData {
         return notificationDataMap[account.uuid] ?: NotificationData.create(account).also { notificationData ->
             notificationDataMap[account.uuid] = notificationData
         }

@@ -1,14 +1,16 @@
 package com.fsck.k9.preferences
 
-import com.fsck.k9.K9
 import com.fsck.k9.Preferences
 import net.thunderbird.core.logging.legacy.Log
+import net.thunderbird.core.preference.PreferenceChangePublisher
+import net.thunderbird.core.preference.getPreferenceScope
 import net.thunderbird.core.preference.storage.StorageEditor
 import net.thunderbird.feature.account.storage.legacy.LegacyAccountStorageHandler
 
 internal class GeneralSettingsWriter(
     private val preferences: Preferences,
     private val generalSettingsManager: DefaultGeneralSettingsManager,
+    private val changePublisher: PreferenceChangePublisher,
 ) {
     fun write(settings: InternalSettingsMap): Boolean {
         // Convert general settings to the string representation used in preference storage
@@ -21,13 +23,22 @@ internal class GeneralSettingsWriter(
         mergedSettings.putAll(stringSettings)
 
         for ((key, value) in mergedSettings) {
-            editor.putStringWithLogging(key, value, generalSettingsManager.getConfig().debugging.isDebugLoggingEnabled)
+            editor.putStringWithLogging(
+                key,
+                value,
+                generalSettingsManager.getConfig().debugging.isDebugLoggingEnabled,
+                generalSettingsManager.getConfig().debugging.isSensitiveLoggingEnabled,
+            )
         }
 
         return if (editor.commit()) {
             Log.v("Committed general settings to the preference storage.")
 
             generalSettingsManager.loadSettings()
+            mergedSettings.keys.forEach {
+                val preferenceScope = getPreferenceScope(it)
+                changePublisher.publish(scope = preferenceScope)
+            }
 
             true
         } else {
@@ -40,10 +51,15 @@ internal class GeneralSettingsWriter(
 /**
  * Write to a [StorageEditor] while logging what is written if debug logging is enabled.
  */
-internal fun StorageEditor.putStringWithLogging(key: String, value: String?, isDebugLoggingEnabled: Boolean) {
+internal fun StorageEditor.putStringWithLogging(
+    key: String,
+    value: String?,
+    isDebugLoggingEnabled: Boolean,
+    isSensitiveDebugLoggingEnabled: Boolean,
+) {
     if (isDebugLoggingEnabled) {
         var outputValue = value
-        if (!K9.isSensitiveDebugLoggingEnabled &&
+        if (!isSensitiveDebugLoggingEnabled &&
             (
                 key.endsWith("." + LegacyAccountStorageHandler.OUTGOING_SERVER_SETTINGS_KEY) ||
                     key.endsWith("." + LegacyAccountStorageHandler.INCOMING_SERVER_SETTINGS_KEY)

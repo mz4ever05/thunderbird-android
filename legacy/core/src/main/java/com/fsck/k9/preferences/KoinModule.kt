@@ -2,7 +2,9 @@ package com.fsck.k9.preferences
 
 import com.fsck.k9.Preferences
 import kotlin.time.ExperimentalTime
-import net.thunderbird.core.logging.legacy.DebugLogConfigurator
+import net.thunderbird.core.android.account.LegacyAccountDtoManager
+import net.thunderbird.core.logging.config.DebugLogConfigurator
+import net.thunderbird.core.logging.config.PlatformInitializer
 import net.thunderbird.core.preference.DefaultPreferenceChangeBroker
 import net.thunderbird.core.preference.GeneralSettingsManager
 import net.thunderbird.core.preference.PreferenceChangeBroker
@@ -11,18 +13,28 @@ import net.thunderbird.core.preference.debugging.DebuggingSettingsPreferenceMana
 import net.thunderbird.core.preference.debugging.DefaultDebuggingSettingsPreferenceManager
 import net.thunderbird.core.preference.display.DefaultDisplaySettingsPreferenceManager
 import net.thunderbird.core.preference.display.DisplaySettingsPreferenceManager
+import net.thunderbird.core.preference.display.coreSettings.DefaultDisplayCoreSettingsPreferenceManager
+import net.thunderbird.core.preference.display.coreSettings.DisplayCoreSettingsPreferenceManager
+import net.thunderbird.core.preference.display.inboxSettings.DefaultDisplayInboxSettingsPreferenceManager
+import net.thunderbird.core.preference.display.inboxSettings.DisplayInboxSettingsPreferenceManager
+import net.thunderbird.core.preference.display.miscSettings.DefaultDisplayMiscSettingsPreferenceManager
+import net.thunderbird.core.preference.display.miscSettings.DisplayMiscSettingsPreferenceManager
+import net.thunderbird.core.preference.display.visualSettings.DefaultDisplayVisualSettingsPreferenceManager
+import net.thunderbird.core.preference.display.visualSettings.DisplayVisualSettingsPreferenceManager
+import net.thunderbird.core.preference.display.visualSettings.message.list.DefaultMessageListPreferencesManager
+import net.thunderbird.core.preference.display.visualSettings.message.list.MessageListPreferencesManager
+import net.thunderbird.core.preference.interaction.DefaultInteractionSettingsPreferenceManager
+import net.thunderbird.core.preference.interaction.InteractionSettingsPreferenceManager
 import net.thunderbird.core.preference.network.DefaultNetworkSettingsPreferenceManager
 import net.thunderbird.core.preference.network.NetworkSettingsPreferenceManager
 import net.thunderbird.core.preference.notification.DefaultNotificationPreferenceManager
 import net.thunderbird.core.preference.notification.NotificationPreferenceManager
 import net.thunderbird.core.preference.privacy.DefaultPrivacySettingsPreferenceManager
 import net.thunderbird.core.preference.privacy.PrivacySettingsPreferenceManager
-import net.thunderbird.feature.mail.account.api.AccountManager
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
-import net.thunderbird.core.android.account.AccountManager as LegacyAccountManager
 
 val preferencesModule = module {
     factory {
@@ -36,45 +48,108 @@ val preferencesModule = module {
         )
     }
     factory { FolderSettingsProvider(folderRepository = get()) }
-    factory<LegacyAccountManager> { get<Preferences>() }
-    factory<AccountManager<*>> { get<LegacyAccountManager>() }
+    factory<LegacyAccountDtoManager> { get<Preferences>() }
     single<PrivacySettingsPreferenceManager> {
         DefaultPrivacySettingsPreferenceManager(
             logger = get(),
-            storage = get<Preferences>().storage,
+            storagePersister = get(),
             storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
         )
     }
     single<NotificationPreferenceManager> {
         DefaultNotificationPreferenceManager(
             logger = get(),
-            storage = get<Preferences>().storage,
+            storagePersister = get(),
             storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
+        )
+    }
+    single<DisplayCoreSettingsPreferenceManager> {
+        DefaultDisplayCoreSettingsPreferenceManager(
+            logger = get(),
+            storagePersister = get(),
+            storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
+        )
+    }
+    single<DisplayInboxSettingsPreferenceManager> {
+        DefaultDisplayInboxSettingsPreferenceManager(
+            logger = get(),
+            storagePersister = get(),
+            storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
+        )
+    }
+    single<DisplayVisualSettingsPreferenceManager> {
+        DefaultDisplayVisualSettingsPreferenceManager(
+            logger = get(),
+            storagePersister = get(),
+            storageEditor = get<Preferences>().createStorageEditor(),
+            messageListPreferences = get(),
+            preferenceChangeBroker = get(),
+        )
+    }
+    single<DisplayMiscSettingsPreferenceManager> {
+        DefaultDisplayMiscSettingsPreferenceManager(
+            logger = get(),
+            storagePersister = get(),
+            storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
+        )
+    }
+    single<InteractionSettingsPreferenceManager> {
+        DefaultInteractionSettingsPreferenceManager(
+            logger = get(),
+            storagePersister = get(),
+            storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
         )
     }
     single<DisplaySettingsPreferenceManager> {
         DefaultDisplaySettingsPreferenceManager(
             logger = get(),
-            storage = get<Preferences>().storage,
-            storageEditor = get<Preferences>().createStorageEditor(),
+            coreSettingsPreferenceManager = get(),
+            inboxSettingsPreferenceManager = get(),
+            visualSettingsPreferenceManager = get(),
+            miscSettingsPreferenceManager = get(),
+        )
+    }
+    single<MessageListPreferencesManager> {
+        DefaultMessageListPreferencesManager(
+            logger = get(),
+            storage = get(),
+            storageEditor = get(),
+            preferenceChangeBroker = get(),
         )
     }
     single<NetworkSettingsPreferenceManager> {
         DefaultNetworkSettingsPreferenceManager(
             logger = get(),
-            storage = get<Preferences>().storage,
+            storagePersister = get(),
             storageEditor = get<Preferences>().createStorageEditor(),
+            preferenceChangeBroker = get(),
         )
     }
     single<DebuggingSettingsPreferenceManager> {
         DefaultDebuggingSettingsPreferenceManager(
             logger = get(),
-            storage = get<Preferences>().storage,
+            storagePersister = get(),
             storageEditor = get<Preferences>().createStorageEditor(),
+            logLevelManager = get(),
+            platformConfigProvider = get(),
+            preferenceChangeBroker = get(),
         )
     }
+    single<PlatformInitializer> {
+        PlatformInitializer()
+    }
     single<DebugLogConfigurator> {
-        DebugLogConfigurator()
+        DebugLogConfigurator(
+            syncDebugCompositeSink = get(named("syncDebug")),
+            syncDebugFileLogSink = get(named("syncDebug")),
+            platformInitializer = get(),
+        )
     }
     single {
         DefaultGeneralSettingsManager(
@@ -84,16 +159,24 @@ val preferencesModule = module {
             privacySettingsPreferenceManager = get(),
             notificationPreferenceManager = get(),
             displaySettingsSettingsPreferenceManager = get(),
+            displayCoreSettingsPreferenceManager = get(),
+            displayInboxSettingsPreferenceManager = get(),
+            displayVisualSettingsPreferenceManager = get(),
+            messageListPreferencesManager = get(),
+            displayMiscSettingsPreferenceManager = get(),
             networkSettingsPreferenceManager = get(),
             debuggingSettingsPreferenceManager = get(),
+            interactionSettingsPreferenceManager = get(),
             debugLogConfigurator = get(),
+            platformConfigProvider = get(),
+            logger = get(),
         )
     } bind GeneralSettingsManager::class
     single {
         DefaultDrawerConfigManager(
-            preferences = get(),
             coroutineScope = get(named("AppCoroutineScope")),
-            displaySettingsPreferenceManager = get(),
+            displayInboxSettingsPreferenceManager = get(),
+            displayVisualSettingsPreferenceManager = get(),
         )
     } bind DrawerConfigManager::class
 
@@ -101,7 +184,13 @@ val preferencesModule = module {
 
     factory { GeneralSettingsValidator() }
     factory { GeneralSettingsUpgrader() }
-    factory { GeneralSettingsWriter(preferences = get(), generalSettingsManager = get()) }
+    factory {
+        GeneralSettingsWriter(
+            preferences = get(),
+            generalSettingsManager = get(),
+            changePublisher = get(),
+        )
+    }
 
     factory { AccountSettingsValidator() }
 

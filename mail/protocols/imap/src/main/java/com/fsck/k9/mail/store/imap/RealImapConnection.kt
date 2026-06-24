@@ -6,7 +6,6 @@ import com.fsck.k9.mail.AuthenticationFailedException
 import com.fsck.k9.mail.CertificateValidationException
 import com.fsck.k9.mail.ConnectionSecurity
 import com.fsck.k9.mail.K9MailLib
-import com.fsck.k9.mail.MessagingException
 import com.fsck.k9.mail.MissingCapabilityException
 import com.fsck.k9.mail.NetworkTimeouts.SOCKET_CONNECT_TIMEOUT
 import com.fsck.k9.mail.NetworkTimeouts.SOCKET_READ_TIMEOUT
@@ -35,6 +34,7 @@ import java.util.regex.Pattern
 import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
 import javax.net.ssl.SSLException
+import net.thunderbird.core.common.exception.MessagingException
 import net.thunderbird.core.logging.legacy.Log
 import org.apache.commons.io.IOUtils
 
@@ -321,6 +321,7 @@ internal class RealImapConnection(
                     throw MissingCapabilityException(Capabilities.AUTH_OAUTHBEARER)
                 }
             }
+
             AuthType.CRAM_MD5 -> {
                 if (hasCapability(Capabilities.AUTH_CRAM_MD5)) {
                     authCramMD5()
@@ -328,6 +329,7 @@ internal class RealImapConnection(
                     throw MissingCapabilityException(Capabilities.AUTH_CRAM_MD5)
                 }
             }
+
             AuthType.PLAIN -> {
                 if (hasCapability(Capabilities.AUTH_PLAIN)) {
                     saslAuthPlainWithLoginFallback()
@@ -337,6 +339,7 @@ internal class RealImapConnection(
                     throw MissingCapabilityException(Capabilities.AUTH_PLAIN)
                 }
             }
+
             AuthType.EXTERNAL -> {
                 if (hasCapability(Capabilities.AUTH_EXTERNAL)) {
                     saslAuthExternal()
@@ -344,6 +347,7 @@ internal class RealImapConnection(
                     throw MissingCapabilityException(Capabilities.AUTH_EXTERNAL)
                 }
             }
+
             else -> {
                 throw MessagingException("Unhandled authentication method found in the server settings (bug).")
             }
@@ -409,7 +413,11 @@ internal class RealImapConnection(
         val authString = method.buildInitialClientResponse(settings.username, token)
         val tag = sendSaslIrCommand(method.command, authString, true)
 
-        return responseParser.readStatusResponse(tag, method.command, logId, ::handleOAuthUntaggedResponse)
+        return responseParser.readStatusResponse(
+            tag,
+            method.command,
+            logId,
+        ) { handleOAuthUntaggedResponse(it) }
     }
 
     private fun handleOAuthUntaggedResponse(response: ImapResponse) {

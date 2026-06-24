@@ -13,6 +13,8 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
             createGmailConfiguration(),
             createMicrosoftConfiguration(),
             createYahooConfiguration(),
+            createThundermailConfiguration(),
+            createThundermailStageConfiguration(),
         )
     }
 
@@ -61,9 +63,11 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
         return listOf(
             "outlook.office365.com",
             "smtp.office365.com",
+            "smtp-mail.outlook.com",
         ) to OAuthConfiguration(
             clientId = "e6f8716e-299d-4ed9-bbf3-453f192f44e5",
             scopes = listOf(
+                "profile",
                 "openid",
                 "email",
                 "https://outlook.office.com/IMAP.AccessAsUser.All",
@@ -88,4 +92,27 @@ class TbOAuthConfigurationFactory : OAuthConfigurationFactory {
             redirectUri = "${BuildConfig.APPLICATION_ID}.fork://oauth2redirect",
         )
     }
+
+    private fun createThundermailConfiguration(): Pair<List<String>, OAuthConfiguration> =
+        listOf(
+            "mail.tb.pro",
+            "mail.thundermail.com",
+        ) to OAuthConfiguration(
+            clientId = "mobile-android-thunderbird",
+            scopes = listOf("openid", "profile", "email", "offline_access"),
+            authorizationEndpoint = "https://auth.tb.pro/realms/tbpro/protocol/openid-connect/auth",
+            tokenEndpoint = "https://auth.tb.pro/realms/tbpro/protocol/openid-connect/token",
+            redirectUri = "${BuildConfig.APPLICATION_ID}://oauth2redirect",
+        )
+
+    private fun createThundermailStageConfiguration(): Pair<List<String>, OAuthConfiguration> =
+        listOf(
+            "mail.stage-thundermail.com",
+        ) to OAuthConfiguration(
+            clientId = "mobile-android-thunderbird",
+            scopes = listOf("openid", "profile", "email", "offline_access"),
+            authorizationEndpoint = "https://auth-stage.tb.pro/realms/tbpro/protocol/openid-connect/auth",
+            tokenEndpoint = "https://auth-stage.tb.pro/realms/tbpro/protocol/openid-connect/token",
+            redirectUri = "${BuildConfig.APPLICATION_ID}://oauth2redirect",
+        )
 }

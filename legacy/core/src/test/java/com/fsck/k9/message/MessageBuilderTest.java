@@ -24,7 +24,7 @@ import com.fsck.k9.mail.BodyPart;
 import com.fsck.k9.mail.BoundaryGenerator;
 import com.fsck.k9.mail.Message;
 import com.fsck.k9.mail.Message.RecipientType;
-import com.fsck.k9.mail.MessagingException;
+import net.thunderbird.core.common.exception.MessagingException;
 import com.fsck.k9.mail.internet.MessageIdGenerator;
 import com.fsck.k9.mail.internet.MimeHeader;
 import com.fsck.k9.mail.internet.MimeMessage;
@@ -33,11 +33,12 @@ import com.fsck.k9.message.MessageBuilder.Callback;
 import com.fsck.k9.message.quote.InsertableHtmlContent;
 import net.thunderbird.core.logging.legacy.Log;
 import net.thunderbird.core.logging.testing.TestLogger;
-import net.thunderbird.core.preference.AppTheme;
-import net.thunderbird.core.preference.BackgroundSync;
 import net.thunderbird.core.preference.GeneralSettings;
 import net.thunderbird.core.preference.GeneralSettingsManager;
-import net.thunderbird.core.preference.SubTheme;
+import net.thunderbird.core.preference.debugging.DebuggingSettings;
+import net.thunderbird.core.preference.display.DisplaySettings;
+import net.thunderbird.core.preference.interaction.InteractionSettings;
+import net.thunderbird.core.preference.network.NetworkSettings;
 import net.thunderbird.core.preference.notification.NotificationPreference;
 import net.thunderbird.core.preference.privacy.PrivacySettings;
 import org.jetbrains.annotations.NotNull;
@@ -211,7 +212,15 @@ public class MessageBuilderTest extends RobolectricTest {
         @NonNull
         @Override
         public GeneralSettings getSettings() {
-            return new GeneralSettings();
+            return  new GeneralSettings(
+                mock(),
+                new NetworkSettings(),
+                new NotificationPreference(),
+                new DisplaySettings(),
+                new PrivacySettings(),
+                new DebuggingSettings(true,false,false),
+                new InteractionSettings()
+            );
         }
 
         @NonNull

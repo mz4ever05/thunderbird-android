@@ -1,5 +1,12 @@
 package net.thunderbird.feature.navigation.drawer.dropdown.ui.account
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,21 +32,20 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import app.k9mail.core.ui.compose.designsystem.atom.text.TextBodyLarge
 import app.k9mail.core.ui.compose.designsystem.atom.text.TextBodyMedium
-import app.k9mail.core.ui.compose.theme2.MainTheme
-import net.thunderbird.feature.account.avatar.ui.AvatarOutlined
-import net.thunderbird.feature.account.avatar.ui.AvatarSize
+import net.thunderbird.core.ui.compose.theme2.MainTheme
 import net.thunderbird.feature.navigation.drawer.dropdown.R
 import net.thunderbird.feature.navigation.drawer.dropdown.domain.entity.DisplayAccount
 import net.thunderbird.feature.navigation.drawer.dropdown.domain.entity.MailDisplayAccount
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.AnimatedExpandIcon
-import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.getDisplayAccountColor
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.getDisplayAccountName
 
 @Composable
 internal fun AccountView(
     account: DisplayAccount,
     onClick: () -> Unit,
+    onAvatarClick: () -> Unit,
     showAccountSelection: Boolean,
+    isShowAnimations: Boolean,
     modifier: Modifier = Modifier,
 ) {
     AccountLayout(
@@ -52,11 +57,14 @@ internal fun AccountView(
         } else {
             AccountSelectedView(
                 account = account,
+                onAvatarClick = onAvatarClick,
+                isShowAnimations = isShowAnimations,
             )
         }
 
         AnimatedExpandIcon(
             isExpanded = showAccountSelection,
+            isShowAnimations = isShowAnimations,
             modifier = Modifier.padding(end = MainTheme.spacings.double),
             tint = MainTheme.colors.onSurfaceVariant,
         )
@@ -66,32 +74,56 @@ internal fun AccountView(
 @Composable
 private fun RowScope.AccountSelectedView(
     account: DisplayAccount,
+    onAvatarClick: () -> Unit,
+    isShowAnimations: Boolean,
 ) {
-    val color = getDisplayAccountColor(account)
-    val name = getDisplayAccountName(account)
-
-    AvatarOutlined(
-        color = color,
-        name = name,
-        size = AvatarSize.MEDIUM,
-    )
-    Column(
-        verticalArrangement = Arrangement.spacedBy(MainTheme.spacings.half),
+    AnimatedContent(
+        targetState = account,
+        transitionSpec = {
+            if (isShowAnimations) {
+                (slideInHorizontally { it } + fadeIn()) togetherWith
+                    (slideOutHorizontally { -it } + fadeOut())
+            } else {
+                (slideInHorizontally(animationSpec = snap()) { 0 } + fadeIn(animationSpec = snap())) togetherWith
+                    (slideOutHorizontally(animationSpec = snap()) { 0 } + fadeOut(animationSpec = snap()))
+            }
+        },
+        label = "AccountSelectedContent",
+        contentKey = { it.id },
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f),
-    ) {
-        TextBodyLarge(
-            text = buildAnnotatedString {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(name)
-                }
-            },
-        )
-        if (account is MailDisplayAccount && account.name != account.email) {
-            TextBodyMedium(
-                text = account.email,
+    ) { targetAccount ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MainTheme.spacings.double),
+        ) {
+            AccountAvatar(
+                account = targetAccount,
+                onClick = { onAvatarClick() },
+                selected = false,
             )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(MainTheme.spacings.half),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            ) {
+                val name = getDisplayAccountName(targetAccount)
+                TextBodyLarge(
+                    text = buildAnnotatedString {
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(name)
+                        }
+                    },
+                )
+                if (targetAccount is MailDisplayAccount && targetAccount.name != targetAccount.email) {
+                    TextBodyMedium(
+                        text = targetAccount.email,
+                    )
+                }
+            }
         }
     }
 }
@@ -116,11 +148,8 @@ private fun AccountLayout(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val horizontalInsetPadding = getDisplayCutOutHorizontalInsetPadding()
-
     Box(
         modifier = modifier
-            .windowInsetsPadding(horizontalInsetPadding)
             .clickable(onClick = onClick)
             .padding(
                 top = MainTheme.spacings.default,

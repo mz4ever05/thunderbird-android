@@ -15,7 +15,7 @@
     <string name="account_server_settings_authentication_label">Аутентификация</string>
     <string name="account_server_settings_connection_security_start_tls">StartTLS</string>
     <string name="account_server_settings_connection_security_ssl">SSL/TLS</string>
-    <string name="account_server_settings_authentication_none">Ничего</string>
+    <string name="account_server_settings_authentication_none">Нет</string>
     <string name="account_server_settings_authentication_password_cleartext">Обычный пароль</string>
     <string name="account_server_settings_authentication_password_encrypted">Зашифрованный пароль</string>
     <string name="account_server_settings_authentication_client_certificate">Сертификат клиента</string>
@@ -32,4 +32,6 @@
     <string name="account_server_settings_validation_error_server_required">Необходимо указать имя сервера.</string>
     <string name="account_server_settings_password_authentication_screen_lock_required">Чтобы увидеть ваш пароль, включите блокировку экрана на этом устройстве.</string>
     <string name="account_server_settings_incoming_imap_send_client_info_label">Отправлять информацию о клиенте</string>
+    <string name="account_server_settings_password_authentication_failed">Аутентификация не выполнена!</string>
+    <string name="account_server_settings_password_authentication_unable_to_start">Невозможно запустить биометрическую проверку.</string>
 </resources>

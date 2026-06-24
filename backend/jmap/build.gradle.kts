@@ -7,6 +7,7 @@ plugins {
 dependencies {
     api(projects.backend.api)
     implementation(projects.core.common)
+    implementation(projects.feature.mail.folder.api)
 
     api(libs.okhttp)
     implementation(libs.jmap.client)
@@ -16,5 +17,11 @@ dependencies {
     testImplementation(projects.core.logging.testing)
     testImplementation(projects.mail.testing)
     testImplementation(projects.backend.testing)
+
     testImplementation(libs.okhttp.mockwebserver)
+}
+
+codeCoverage {
+    branchCoverage = 31
+    lineCoverage = 42
 }

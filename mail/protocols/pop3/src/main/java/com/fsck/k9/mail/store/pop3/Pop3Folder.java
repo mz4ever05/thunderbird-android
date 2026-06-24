@@ -12,10 +12,10 @@ import java.util.Set;
 
 import net.thunderbird.core.logging.legacy.Log;
 import com.fsck.k9.mail.FetchProfile;
-import com.fsck.k9.mail.Flag;
+import net.thunderbird.core.common.mail.Flag;
 import com.fsck.k9.mail.K9MailLib;
 import com.fsck.k9.mail.MessageRetrievalListener;
-import com.fsck.k9.mail.MessagingException;
+import net.thunderbird.core.common.exception.MessagingException;
 import org.jetbrains.annotations.NotNull;
 
 import static com.fsck.k9.mail.K9MailLib.DEBUG_PROTOCOL_POP3;

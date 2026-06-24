@@ -11,10 +11,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.account.fake.FakeAccountData.ACCOUNT_ID_RAW
-import net.thunderbird.core.android.account.AccountManager
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
+import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import net.thunderbird.feature.search.legacy.LocalMessageSearch
 import net.thunderbird.feature.search.legacy.SearchConditionTreeNode
+import net.thunderbird.legacy.core.mailstore.folder.FakeOutboxFolderManager
 import org.junit.Test
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doAnswer
@@ -26,8 +27,8 @@ private const val STARRED_COUNT = 3
 
 class DefaultMessageCountsProviderTest {
 
-    private val account = LegacyAccount(ACCOUNT_ID_RAW)
-    private val accountManager = mock<AccountManager> {
+    private val account = LegacyAccountDto(ACCOUNT_ID_RAW)
+    private val accountManager = mock<LegacyAccountDtoManager> {
         on { getAccounts() } doReturn listOf(account)
     }
     private val messageStore = mock<ListenableMessageStore> {
@@ -48,6 +49,7 @@ class DefaultMessageCountsProviderTest {
         accountManager = accountManager,
         messageStoreManager = messageStoreManager,
         messagingControllerRegistry = messagingControllerRegistry,
+        outboxFolderManager = FakeOutboxFolderManager(),
     )
 
     @Test
@@ -56,7 +58,6 @@ class DefaultMessageCountsProviderTest {
         account.trashFolderId = null
         account.draftsFolderId = null
         account.spamFolderId = null
-        account.outboxFolderId = null
         account.sentFolderId = null
 
         val messageCounts = messageCountsProvider.getMessageCounts(account)
@@ -93,6 +94,7 @@ class DefaultMessageCountsProviderTest {
             accountManager = accountManager,
             messageStoreManager = messageStoreManager,
             messagingControllerRegistry = registry,
+            outboxFolderManager = FakeOutboxFolderManager(),
         )
         val search = LocalMessageSearch().apply {
             addAccountUuid(account.uuid)

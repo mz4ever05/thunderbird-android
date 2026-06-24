@@ -7,9 +7,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.android.testing.MockHelper.mockBuilder
 import net.thunderbird.core.android.testing.RobolectricTest
+import net.thunderbird.core.common.appConfig.PlatformConfigProvider
 import net.thunderbird.core.preference.GeneralSettings
 import net.thunderbird.core.preference.display.DisplaySettings
 import net.thunderbird.core.preference.network.NetworkSettings
@@ -72,7 +73,7 @@ class CertificateErrorNotificationControllerTest : RobolectricTest() {
 
         controller.showCertificateErrorNotification(account, INCOMING)
 
-        verify(notificationManager).notify(notificationId, notification)
+        verify(notificationHelper).notify(notificationId, notification)
         assertCertificateErrorNotificationContents()
     }
 
@@ -91,7 +92,7 @@ class CertificateErrorNotificationControllerTest : RobolectricTest() {
 
         controller.showCertificateErrorNotification(account, OUTGOING)
 
-        verify(notificationManager).notify(notificationId, notification)
+        verify(notificationHelper).notify(notificationId, notification)
         assertCertificateErrorNotificationContents()
     }
 
@@ -134,7 +135,7 @@ class CertificateErrorNotificationControllerTest : RobolectricTest() {
         }
     }
 
-    private fun createFakeAccount(): LegacyAccount {
+    private fun createFakeAccount(): LegacyAccountDto {
         return mock {
             on { accountNumber } doReturn ACCOUNT_NUMBER
             on { displayName } doReturn ACCOUNT_NAME
@@ -152,11 +153,17 @@ class CertificateErrorNotificationControllerTest : RobolectricTest() {
                 display = DisplaySettings(),
                 notification = NotificationPreference(),
                 privacy = PrivacySettings(),
+                platformConfigProvider = FakePlatformConfigProvider(),
             )
         },
     ) {
-        override fun createContentIntent(account: LegacyAccount, incoming: Boolean): PendingIntent {
+        override fun createContentIntent(account: LegacyAccountDto, incoming: Boolean): PendingIntent {
             return contentIntent
         }
     }
+}
+
+class FakePlatformConfigProvider : PlatformConfigProvider {
+    override val isDebug: Boolean
+        get() = true
 }

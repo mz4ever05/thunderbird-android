@@ -1,7 +1,6 @@
 package com.fsck.k9.notification
 
-import com.fsck.k9.K9
-import net.thunderbird.core.android.account.LegacyAccount
+import net.thunderbird.core.android.account.LegacyAccountDto
 import net.thunderbird.core.preference.GeneralSettingsManager
 
 private const val MAX_NUMBER_OF_MESSAGES_FOR_SUMMARY_NOTIFICATION = 5
@@ -10,6 +9,8 @@ internal class SummaryNotificationDataCreator(
     private val singleMessageNotificationDataCreator: SingleMessageNotificationDataCreator,
     private val generalSettingsManager: GeneralSettingsManager,
 ) {
+    private val interactionSettings get() = generalSettingsManager.getConfig().interaction
+
     fun createSummaryNotificationData(data: NotificationData, silent: Boolean): SummaryNotificationData {
         val timestamp = data.latestTimestamp
         val shouldBeSilent = silent || generalSettingsManager.getConfig().notification.isQuietTime
@@ -49,13 +50,13 @@ internal class SummaryNotificationDataCreator(
         return buildList {
             add(SummaryNotificationAction.MarkAsRead)
 
-            if (isDeleteActionEnabled()) {
+            if (isSummaryDeleteActionEnabled()) {
                 add(SummaryNotificationAction.Delete)
             }
         }
     }
 
-    private fun createSummaryWearNotificationActions(account: LegacyAccount): List<SummaryWearNotificationAction> {
+    private fun createSummaryWearNotificationActions(account: LegacyAccountDto): List<SummaryWearNotificationAction> {
         return buildList {
             add(SummaryWearNotificationAction.MarkAsRead)
 
@@ -69,13 +70,13 @@ internal class SummaryNotificationDataCreator(
         }
     }
 
-    private fun isDeleteActionEnabled(): Boolean {
-        return K9.notificationQuickDeleteBehaviour == K9.NotificationQuickDelete.ALWAYS
+    private fun isSummaryDeleteActionEnabled(): Boolean {
+        return generalSettingsManager.getConfig().notification.isSummaryDeleteActionEnabled
     }
 
     // We don't support confirming actions on Wear devices. So don't show the action when confirmation is enabled.
     private fun isDeleteActionAvailableForWear(): Boolean {
-        return isDeleteActionEnabled() && !K9.isConfirmDeleteFromNotification
+        return isSummaryDeleteActionEnabled() && !interactionSettings.isConfirmDeleteFromNotification
     }
 
     private val NotificationData.latestTimestamp: Long

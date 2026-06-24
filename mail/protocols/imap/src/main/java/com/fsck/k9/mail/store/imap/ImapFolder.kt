@@ -2,14 +2,14 @@ package com.fsck.k9.mail.store.imap
 
 import com.fsck.k9.mail.BodyFactory
 import com.fsck.k9.mail.FetchProfile
-import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.FolderType
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.MessageRetrievalListener
-import com.fsck.k9.mail.MessagingException
 import com.fsck.k9.mail.Part
 import java.io.IOException
 import java.util.Date
+import net.thunderbird.core.common.exception.MessagingException
+import net.thunderbird.core.common.mail.Flag
 
 interface ImapFolder {
     val serverId: String

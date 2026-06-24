@@ -3,12 +3,10 @@ package com.fsck.k9.mail.store.imap
 import com.fsck.k9.mail.Body
 import com.fsck.k9.mail.BodyFactory
 import com.fsck.k9.mail.FetchProfile
-import com.fsck.k9.mail.Flag
 import com.fsck.k9.mail.FolderType
 import com.fsck.k9.mail.K9MailLib
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.MessageRetrievalListener
-import com.fsck.k9.mail.MessagingException
 import com.fsck.k9.mail.Part
 import com.fsck.k9.mail.filter.EOLConvertingOutputStream
 import com.fsck.k9.mail.internet.MimeBodyPart
@@ -25,6 +23,8 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
+import net.thunderbird.core.common.exception.MessagingException
+import net.thunderbird.core.common.mail.Flag
 import net.thunderbird.core.logging.legacy.Log
 import net.thunderbird.protocols.imap.folder.attributeName
 
@@ -73,8 +73,7 @@ internal class RealImapFolder(
     @get:Throws(MessagingException::class)
     private val prefixedName: String
         get() {
-            var prefixedName = ""
-            if (!INBOX.equals(serverId, ignoreCase = true)) {
+            val imapPrefix = if (!INBOX.equals(serverId, ignoreCase = true)) {
                 val connection = synchronized(this) {
                     this.connection ?: connectionManager.getConnection()
                 }
@@ -88,11 +87,13 @@ internal class RealImapFolder(
                         connectionManager.releaseConnection(connection)
                     }
                 }
-                prefixedName = internalImapStore.getCombinedPrefix()
+                internalImapStore.combinedPrefix.orEmpty()
+            } else {
+                ""
             }
-            prefixedName += serverId
+            val normalizedServerId = serverId.removePrefix(imapPrefix)
 
-            return prefixedName
+            return "$imapPrefix$normalizedServerId"
         }
 
     @get:Throws(MessagingException::class)
@@ -152,7 +153,7 @@ internal class RealImapFolder(
                 handlePermanentFlags(response)
             }
 
-            handleSelectOrExamineOkResponse(ImapUtility.getLastResponse(responses))
+            handleSelectOrExamineOkResponse(responses.last())
 
             exists = true
 
@@ -608,7 +609,7 @@ internal class RealImapFolder(
             fetchFields.add("BODY.PEEK[]")
         }
 
-        val spaceSeparatedFetchFields = ImapUtility.join(" ", fetchFields)
+        val spaceSeparatedFetchFields = fetchFields.joinToString(" ")
         var windowStart = 0
         val processedUids = mutableSetOf<String>()
         while (windowStart < messages.size) {
@@ -616,7 +617,7 @@ internal class RealImapFolder(
             val uidWindow = uids.subList(windowStart, windowEnd)
 
             try {
-                val commaSeparatedUids = ImapUtility.join(",", uidWindow)
+                val commaSeparatedUids = uidWindow.joinToString(",")
                 val command = String.format("UID FETCH %s (%s)", commaSeparatedUids, spaceSeparatedFetchFields)
                 connection!!.sendCommand(command, false)
 

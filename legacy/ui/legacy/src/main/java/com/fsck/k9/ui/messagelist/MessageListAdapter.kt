@@ -3,97 +3,64 @@ package com.fsck.k9.ui.messagelist
 import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.content.res.Resources.Theme
-import android.graphics.Typeface
-import android.graphics.drawable.Drawable
-import android.text.Spannable
-import android.text.SpannableStringBuilder
-import android.text.style.AbsoluteSizeSpan
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.View.OnLongClickListener
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
-import androidx.annotation.DimenRes
-import androidx.constraintlayout.widget.Guideline
-import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.isVisible
+import androidx.compose.ui.platform.ComposeView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.NO_POSITION
-import app.k9mail.core.ui.legacy.designsystem.atom.icon.Icons
+import app.k9mail.core.android.common.contact.ContactRepository
 import app.k9mail.legacy.message.controller.MessageReference
-import com.fsck.k9.FontSizes
-import com.fsck.k9.UiDensity
 import com.fsck.k9.contacts.ContactPictureLoader
-import com.fsck.k9.mail.Address
-import com.fsck.k9.ui.R
-import com.fsck.k9.ui.helper.RelativeDateTimeFormatter
-import com.fsck.k9.ui.resolveColorAttribute
-import com.google.android.material.textview.MaterialTextView
-import kotlin.math.max
-import com.google.android.material.R as MaterialR
+import com.fsck.k9.ui.messagelist.item.BannerInlineListInAppNotificationViewHolder
+import com.fsck.k9.ui.messagelist.item.ComposableMessageViewHolder
+import com.fsck.k9.ui.messagelist.item.FooterViewHolder
+import com.fsck.k9.ui.messagelist.item.MessageListViewHolder
+import com.fsck.k9.ui.messagelist.item.MessageViewHolder
+import com.fsck.k9.ui.messagelist.item.MessageViewHolderColors
+import net.thunderbird.core.featureflag.FeatureFlagKey
+import net.thunderbird.core.featureflag.FeatureFlagProvider
+import net.thunderbird.core.featureflag.FeatureFlagResult
+import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
+import net.thunderbird.feature.account.avatar.AvatarMonogramCreator
+import net.thunderbird.feature.mail.message.list.MessageListFeatureFlags.UseComposeForMessageListItems
+import net.thunderbird.feature.notification.api.content.InAppNotification
+import net.thunderbird.feature.notification.api.ui.action.NotificationAction
 
 private const val FOOTER_ID = 1L
+private const val IN_APP_NOTIFICATION_BANNER_INLINE_LIST_ID = -1L
 
 private const val TYPE_MESSAGE = 0
 private const val TYPE_FOOTER = 1
+private const val TYPE_IN_APP_NOTIFICATION_BANNER_INLINE_LIST = 2
 
+@Suppress("LongParameterList")
 class MessageListAdapter internal constructor(
-    theme: Theme,
+    private val theme: Theme,
     private val res: Resources,
     private val layoutInflater: LayoutInflater,
     private val contactsPictureLoader: ContactPictureLoader,
     private val listItemListener: MessageListItemActionListener,
-    private val appearance: MessageListAppearance,
-    private val relativeDateTimeFormatter: RelativeDateTimeFormatter,
+    private val appearance: () -> MessageListAppearance,
+    private val themeProvider: FeatureThemeProvider,
+    private val featureFlagProvider: FeatureFlagProvider,
+    private val contactRepository: ContactRepository,
+    private val avatarMonogramCreator: AvatarMonogramCreator,
 ) : RecyclerView.Adapter<MessageListViewHolder>() {
 
-    private val forwardedIcon: Drawable = ResourcesCompat.getDrawable(res, Icons.Outlined.Forward, theme)!!
-    private val answeredIcon: Drawable = ResourcesCompat.getDrawable(res, Icons.Outlined.Reply, theme)!!
-    private val forwardedAnsweredIcon: Drawable =
-        ResourcesCompat.getDrawable(res, Icons.Outlined.CompareArrows, theme)!!
+    val colors: MessageViewHolderColors = MessageViewHolderColors.resolveColors(theme)
 
-    private val activeItemBackgroundColor: Int =
-        theme.resolveColorAttribute(MaterialR.attr.colorSecondaryContainer)
-    private val selectedItemBackgroundColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorSurfaceVariant)
-    private val regularItemBackgroundColor: Int =
-        theme.resolveColorAttribute(MaterialR.attr.colorSurface)
-    private val readItemBackgroundColor: Int =
-        theme.resolveColorAttribute(MaterialR.attr.colorSurfaceContainer)
-    private val unreadItemBackgroundColor: Int =
-        theme.resolveColorAttribute(MaterialR.attr.colorSurface)
-
-    private val activeItemColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSecondaryContainer)
-    private val selectedItemColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSurfaceVariant)
-    private val regularItemColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSurface)
-    private val readItemColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSurface)
-    private val unreadItemColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSurface)
-
-    private val previewTextColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSurfaceVariant)
-    private val previewActiveTextColor: Int = theme.resolveColorAttribute(MaterialR.attr.colorOnSecondary)
-
-    private val compactVerticalPadding = res.getDimensionPixelSize(R.dimen.messageListCompactVerticalPadding)
-    private val compactTextViewMarginTop = res.getDimensionPixelSize(R.dimen.messageListCompactTextViewMargin)
-    private val compactLineSpacingMultiplier = res.getFloatCompat(R.dimen.messageListCompactLineSpacingMultiplier)
-    private val defaultVerticalPadding = res.getDimensionPixelSize(R.dimen.messageListDefaultVerticalPadding)
-    private val defaultTextViewMarginTop = res.getDimensionPixelSize(R.dimen.messageListDefaultTextViewMargin)
-    private val defaultLineSpacingMultiplier = res.getFloatCompat(R.dimen.messageListDefaultLineSpacingMultiplier)
-    private val relaxedVerticalPadding = res.getDimensionPixelSize(R.dimen.messageListRelaxedVerticalPadding)
-    private val relaxedTextViewMarginTop = res.getDimensionPixelSize(R.dimen.messageListRelaxedTextViewMargin)
-    private val relaxedLineSpacingMultiplier = res.getFloatCompat(R.dimen.messageListRelaxedLineSpacingMultiplier)
-
-    var messages: List<MessageListItem> = emptyList()
+    var viewItems: List<MessageListViewItem> = emptyList()
         @SuppressLint("NotifyDataSetChanged")
         set(value) {
             val oldMessageList = field
 
             field = value
-            messagesMap = value.associateBy { it.uniqueId }
+            val messages = value.filterMessageListItem()
+            accountUuids = messages.map { it.account.uuid }.toSet()
+            messagesMap = messages.associateBy { it.uniqueId }
 
             if (selected.isNotEmpty()) {
                 val uniqueIds = messagesMap.keys
@@ -106,7 +73,9 @@ class MessageListAdapter internal constructor(
             diffResult.dispatchUpdatesTo(this)
         }
 
+    private val messages get() = viewItems.filterMessageListItem()
     private var messagesMap = emptyMap<Long, MessageListItem>()
+    private var accountUuids = emptySet<String>()
 
     var activeMessage: MessageReference? = null
         set(value) {
@@ -156,41 +125,6 @@ class MessageListAdapter internal constructor(
     var selectedCount: Int = 0
         private set
 
-    var footerText: String? = null
-        set(value) {
-            if (field == value) return
-
-            val hadFooterText = field != null
-            val previousFooterPosition = footerPosition
-            field = value
-
-            if (hadFooterText) {
-                if (value == null) {
-                    notifyItemRemoved(previousFooterPosition)
-                } else {
-                    notifyItemChanged(footerPosition)
-                }
-            } else {
-                notifyItemInserted(footerPosition)
-            }
-        }
-
-    private val hasFooter: Boolean
-        get() = footerText != null
-
-    private val lastMessagePosition: Int
-        get() = messages.lastIndex
-
-    private val footerPosition: Int
-        get() = if (hasFooter) lastMessagePosition + 1 else NO_POSITION
-
-    private inline val subjectViewFontSize: Int
-        get() = if (appearance.senderAboveSubject) {
-            appearance.fontSizes.messageListSender
-        } else {
-            appearance.fontSizes.messageListSubject
-        }
-
     private val messageClickedListener = OnClickListener { view: View ->
         val messageListItem = getItemFromView(view) ?: return@OnClickListener
         listItemListener.onMessageClicked(messageListItem)
@@ -219,352 +153,143 @@ class MessageListAdapter internal constructor(
         listItemListener.onToggleMessageSelection(messageListItem)
     }
 
+    private val isInAppNotificationEnabled: Boolean
+        get() = featureFlagProvider.provide(FeatureFlagKey.DisplayInAppNotifications) == FeatureFlagResult.Enabled
+
     init {
         setHasStableIds(true)
     }
 
-    override fun getItemCount(): Int = messages.size + if (hasFooter) 1 else 0
+    override fun getItemCount(): Int = viewItems.size
 
     override fun getItemId(position: Int): Long {
-        return if (position <= lastMessagePosition) {
-            messages[position].uniqueId
-        } else {
-            FOOTER_ID
-        }
+        return viewItems[position].viewId
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (position <= lastMessagePosition) TYPE_MESSAGE else TYPE_FOOTER
+        return viewItems[position].viewType
     }
 
-    private fun getItem(position: Int): MessageListItem = messages[position]
+    private fun getItem(position: Int): MessageListItem = (viewItems[position] as MessageListViewItem.Message).item
 
     fun getItemById(uniqueId: Long): MessageListItem? {
         return messagesMap[uniqueId]
     }
 
     fun getItem(messageReference: MessageReference): MessageListItem? {
-        return messages.firstOrNull {
-            it.account.uuid == messageReference.accountUuid &&
-                it.folderId == messageReference.folderId &&
-                it.messageUid == messageReference.uid
-        }
+        return viewItems
+            .filterMessageListItem()
+            .firstOrNull {
+                it.account.uuid == messageReference.accountUuid &&
+                    it.folderId == messageReference.folderId &&
+                    it.messageUid == messageReference.uid
+            }
     }
 
     fun getPosition(messageListItem: MessageListItem): Int? {
-        return messages.indexOf(messageListItem).takeIf { it != -1 }
+        return viewItems
+            .map { (it as? MessageListViewItem.Message)?.item }
+            .indexOf(messageListItem).takeIf { it != -1 }
     }
 
     private fun getPosition(messageReference: MessageReference?): Int? {
         if (messageReference == null) return null
 
-        return messages.indexOfFirst {
-            messageReference.equals(it.account.uuid, it.folderId, it.messageUid)
-        }.takeIf { it != -1 }
+        return viewItems
+            .map { (it as? MessageListViewItem.Message)?.item }
+            .indexOfFirst {
+                it != null &&
+                    messageReference.equals(it.account.uuid, it.folderId, it.messageUid)
+            }
+            .takeIf { it != -1 }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageListViewHolder {
         return when (viewType) {
-            TYPE_MESSAGE -> createMessageViewHolder(parent)
-            TYPE_FOOTER -> createFooterViewHolder(parent)
+            TYPE_MESSAGE -> {
+                val result = featureFlagProvider.provide(UseComposeForMessageListItems)
+                if (result.isEnabled()) {
+                    createComposableMessageViewHolder(parent)
+                } else {
+                    createMessageViewHolder(parent)
+                }
+            }
+
+            TYPE_FOOTER -> FooterViewHolder.create(layoutInflater, parent, footerClickListener)
+
+            TYPE_IN_APP_NOTIFICATION_BANNER_INLINE_LIST if isInAppNotificationEnabled ->
+                BannerInlineListInAppNotificationViewHolder(
+                    view = ComposeView(context = parent.context),
+                    eventFilter = listItemListener::filterInAppNotificationEvents,
+                    onNotificationActionClick = listItemListener::onNotificationActionClicked,
+                )
+
             else -> error("Unsupported type: $viewType")
         }
     }
 
-    private fun createMessageViewHolder(parent: ViewGroup?): MessageViewHolder {
-        val view = layoutInflater.inflate(R.layout.message_list_item, parent, false)
-        view.setOnClickListener(messageClickedListener)
-        view.setOnLongClickListener(messageLongClickedListener)
+    private fun createMessageViewHolder(parent: ViewGroup): MessageViewHolder =
+        MessageViewHolder.create(
+            layoutInflater = layoutInflater,
+            parent = parent,
+            appearance = appearance,
+            res = res,
+            contactsPictureLoader = contactsPictureLoader,
+            colors = colors,
+            theme = theme,
+            onClickListener = messageClickedListener,
+            onLongClickListener = messageLongClickedListener,
+            contactPictureContainerClickListener = contactPictureContainerClickListener,
+            starClickListener = starClickListener,
+        )
 
-        val holder = MessageViewHolder(view)
-
-        val contactPictureClickArea = view.findViewById<View>(R.id.contact_picture_click_area)
-        if (appearance.showContactPicture) {
-            contactPictureClickArea.setOnClickListener(contactPictureContainerClickListener)
-        } else {
-            contactPictureClickArea.isVisible = false
-            holder.selected.isVisible = false
-            holder.contactPicture.isVisible = false
-        }
-
-        holder.chip.isVisible = appearance.showAccountChip
-
-        appearance.fontSizes.setViewTextSize(holder.subject, subjectViewFontSize)
-        appearance.fontSizes.setViewTextSize(holder.date, appearance.fontSizes.messageListDate)
-
-        // 1 preview line is needed even if it is set to 0, because subject is part of the same text view
-        holder.preview.maxLines = max(appearance.previewLines, 1)
-        appearance.fontSizes.setViewTextSize(holder.preview, appearance.fontSizes.messageListPreview)
-        appearance.fontSizes.setViewTextSize(
-            holder.threadCount,
-            appearance.fontSizes.messageListSubject,
-        ) // thread count is next to subject
-
-        holder.star.isVisible = appearance.stars
-        holder.starClickArea.isVisible = appearance.stars
-        holder.starClickArea.setOnClickListener(starClickListener)
-
-        applyDensityValue(holder, appearance.density)
-
-        view.tag = holder
-
-        return holder
-    }
-
-    private fun applyDensityValue(holder: MessageViewHolder, density: UiDensity) {
-        val verticalPadding: Int
-        val textViewMarginTop: Int
-        val lineSpacingMultiplier: Float
-        when (density) {
-            UiDensity.Compact -> {
-                verticalPadding = compactVerticalPadding
-                textViewMarginTop = compactTextViewMarginTop
-                lineSpacingMultiplier = compactLineSpacingMultiplier
-            }
-
-            UiDensity.Default -> {
-                verticalPadding = defaultVerticalPadding
-                textViewMarginTop = defaultTextViewMarginTop
-                lineSpacingMultiplier = defaultLineSpacingMultiplier
-            }
-
-            UiDensity.Relaxed -> {
-                verticalPadding = relaxedVerticalPadding
-                textViewMarginTop = relaxedTextViewMarginTop
-                lineSpacingMultiplier = relaxedLineSpacingMultiplier
-            }
-        }
-
-        holder.itemView.findViewById<Guideline>(R.id.top_guideline).setGuidelineBegin(verticalPadding)
-        holder.itemView.findViewById<Guideline>(R.id.bottom_guideline).setGuidelineEnd(verticalPadding)
-        holder.preview.apply {
-            setMarginTop(textViewMarginTop)
-            setLineSpacing(lineSpacingExtra, lineSpacingMultiplier)
-        }
-    }
-
-    private fun createFooterViewHolder(parent: ViewGroup): MessageListViewHolder {
-        val view = layoutInflater.inflate(R.layout.message_list_item_footer, parent, false)
-        view.setOnClickListener(footerClickListener)
-        return FooterViewHolder(view)
-    }
+    private fun createComposableMessageViewHolder(parent: ViewGroup): MessageListViewHolder =
+        ComposableMessageViewHolder.create(
+            context = parent.context,
+            themeProvider = themeProvider,
+            contactRepository = contactRepository,
+            avatarMonogramCreator = avatarMonogramCreator,
+            onClick = { listItemListener.onMessageClicked(it) },
+            onLongClick = { listItemListener.onToggleMessageSelection(it) },
+            onFavouriteClick = { listItemListener.onToggleMessageFlag(it) },
+            onAvatarClick = { listItemListener.onToggleMessageSelection(it) },
+            appearance = appearance,
+        )
 
     override fun onBindViewHolder(holder: MessageListViewHolder, position: Int) {
         when (val viewType = getItemViewType(position)) {
+            TYPE_IN_APP_NOTIFICATION_BANNER_INLINE_LIST if isInAppNotificationEnabled ->
+                (holder as BannerInlineListInAppNotificationViewHolder).bind()
+
             TYPE_MESSAGE -> {
                 val messageListItem = getItem(position)
-                bindMessageViewHolder(holder as MessageViewHolder, messageListItem)
+                val result = featureFlagProvider.provide(UseComposeForMessageListItems)
+                if (result.isEnabled()) {
+                    val messageViewHolder = holder as ComposableMessageViewHolder
+                    messageViewHolder.bind(
+                        item = messageListItem,
+                        isActive = isActiveMessage(messageListItem),
+                        isSelected = isSelected(messageListItem),
+                    )
+                } else {
+                    val messageViewHolder = holder as MessageViewHolder
+                    messageViewHolder.bind(
+                        messageListItem = messageListItem,
+                        isActive = isActiveMessage(messageListItem),
+                        isSelected = isSelected(messageListItem),
+                    )
+                }
             }
 
             TYPE_FOOTER -> {
-                bindFooterViewHolder(holder as FooterViewHolder)
+                val footerViewHolder = holder as FooterViewHolder
+                val footer = viewItems[position] as MessageListViewItem.Footer
+                footerViewHolder.bind(footer.text)
             }
 
             else -> {
                 error("Unsupported type: $viewType")
             }
-        }
-    }
-
-    private fun bindMessageViewHolder(holder: MessageViewHolder, messageListItem: MessageListItem) {
-        val isSelected = selected.contains(messageListItem.uniqueId)
-        val isActive = isActiveMessage(messageListItem)
-
-        if (appearance.showContactPicture) {
-            holder.contactPictureClickArea.isSelected = isSelected
-            if (isSelected) {
-                holder.contactPicture.isVisible = false
-                holder.selected.isVisible = true
-            } else {
-                holder.selected.isVisible = false
-                holder.contactPicture.isVisible = true
-            }
-            holder.contactPictureClickArea.contentDescription = if (isSelected) {
-                res.getString(R.string.swipe_action_deselect)
-            } else {
-                res.getString(R.string.swipe_action_select)
-            }
-        }
-
-        with(messageListItem) {
-            val foregroundColor = selectForegroundColor(isSelected, isRead, isActive)
-            val maybeBoldTypeface = if (isRead) Typeface.NORMAL else Typeface.BOLD
-            val displayDate = relativeDateTimeFormatter.formatDate(messageDate)
-            val displayThreadCount = if (appearance.showingThreadedList) threadCount else 0
-            val subject = MlfUtils.buildSubject(subject, res.getString(R.string.general_no_subject), displayThreadCount)
-
-            if (appearance.showAccountChip) {
-                val accountChipDrawable = holder.chip.drawable.mutate()
-                DrawableCompat.setTint(accountChipDrawable, account.chipColor)
-                holder.chip.setImageDrawable(accountChipDrawable)
-            }
-
-            if (appearance.stars) {
-                holder.star.isSelected = isStarred
-                if (isStarred) {
-                    holder.star.clearColorFilter()
-                } else {
-                    holder.star.setColorFilter(foregroundColor)
-                }
-                holder.starClickArea.contentDescription = if (isStarred) {
-                    res.getString(R.string.unflag_action)
-                } else {
-                    res.getString(R.string.flag_action)
-                }
-            }
-            holder.uniqueId = uniqueId
-            if (appearance.showContactPicture && holder.contactPicture.isVisible) {
-                setContactPicture(holder.contactPicture, displayAddress)
-            }
-            holder.itemView.setBackgroundColor(selectBackgroundColor(isSelected, isRead, isActive))
-            updateWithThreadCount(holder, displayThreadCount)
-            val beforePreviewText = if (appearance.senderAboveSubject) subject else displayName
-            val messageStringBuilder = SpannableStringBuilder(beforePreviewText)
-            if (appearance.previewLines > 0) {
-                val preview = getPreview(isMessageEncrypted, previewText)
-                if (preview.isNotEmpty()) {
-                    messageStringBuilder.append(" – ").append(preview)
-                }
-            }
-            holder.preview.setTextColor(foregroundColor)
-            holder.preview.setText(messageStringBuilder, TextView.BufferType.SPANNABLE)
-
-            formatPreviewText(holder.preview, beforePreviewText, isRead, isActive, isSelected)
-
-            holder.subject.typeface = Typeface.create(holder.subject.typeface, maybeBoldTypeface)
-            holder.subject.setTextColor(foregroundColor)
-
-            val firstLineText = if (appearance.senderAboveSubject) displayName else subject
-            holder.subject.text = firstLineText
-
-            holder.subject.contentDescription = if (isRead) {
-                null
-            } else {
-                res.getString(R.string.message_list_content_description_unread_prefix, firstLineText)
-            }
-
-            holder.date.typeface = Typeface.create(holder.date.typeface, maybeBoldTypeface)
-            holder.date.setTextColor(foregroundColor)
-            holder.date.text = displayDate
-            holder.attachment.isVisible = hasAttachments
-            holder.attachment.setColorFilter(foregroundColor)
-
-            val statusHolder = buildStatusHolder(isForwarded, isAnswered)
-            if (statusHolder != null) {
-                holder.status.setImageDrawable(statusHolder)
-                holder.status.isVisible = true
-            } else {
-                holder.status.isVisible = false
-            }
-        }
-    }
-
-    private fun bindFooterViewHolder(holder: FooterViewHolder) {
-        holder.text.text = footerText
-    }
-
-    private fun formatPreviewText(
-        preview: MaterialTextView,
-        beforePreviewText: CharSequence,
-        messageRead: Boolean,
-        active: Boolean,
-        selected: Boolean,
-    ) {
-        val previewText = preview.text as Spannable
-        val textColor = selectPreviewTextColor(active, selected)
-
-        val beforePreviewLength = beforePreviewText.length
-        addBeforePreviewSpan(previewText, beforePreviewLength, messageRead)
-
-        previewText.setSpan(
-            ForegroundColorSpan(textColor),
-            beforePreviewLength,
-            previewText.length,
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
-        )
-    }
-
-    private fun addBeforePreviewSpan(text: Spannable, length: Int, messageRead: Boolean) {
-        val fontSize = if (appearance.senderAboveSubject) {
-            appearance.fontSizes.messageListSubject
-        } else {
-            appearance.fontSizes.messageListSender
-        }
-
-        if (fontSize != FontSizes.FONT_DEFAULT) {
-            val span = AbsoluteSizeSpan(fontSize, true)
-            text.setSpan(span, 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-
-        if (!messageRead) {
-            val span = StyleSpan(Typeface.BOLD)
-            text.setSpan(span, 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-    }
-
-    private fun setContactPicture(contactPictureView: ImageView, displayAddress: Address?) {
-        if (displayAddress != null) {
-            contactsPictureLoader.setContactPicture(contactPictureView, displayAddress)
-        } else {
-            contactPictureView.setImageResource(Icons.Outlined.Check)
-        }
-    }
-
-    private fun buildStatusHolder(forwarded: Boolean, answered: Boolean): Drawable? {
-        if (forwarded && answered) {
-            return forwardedAnsweredIcon
-        } else if (answered) {
-            return answeredIcon
-        } else if (forwarded) {
-            return forwardedIcon
-        }
-        return null
-    }
-
-    private fun selectBackgroundColor(selected: Boolean, read: Boolean, active: Boolean): Int {
-        val backGroundAsReadIndicator = appearance.backGroundAsReadIndicator
-        return when {
-            selected -> selectedItemBackgroundColor
-            active -> activeItemBackgroundColor
-            backGroundAsReadIndicator && read -> readItemBackgroundColor
-            backGroundAsReadIndicator && !read -> unreadItemBackgroundColor
-            else -> regularItemBackgroundColor
-        }
-    }
-
-    private fun selectForegroundColor(selected: Boolean, read: Boolean, active: Boolean): Int {
-        val backGroundAsReadIndicator = appearance.backGroundAsReadIndicator
-        return when {
-            selected -> selectedItemColor
-            active -> activeItemColor
-            backGroundAsReadIndicator && read -> readItemColor
-            backGroundAsReadIndicator && !read -> unreadItemColor
-            else -> regularItemColor
-        }
-    }
-
-    private fun selectPreviewTextColor(active: Boolean, selected: Boolean): Int {
-        return when {
-            selected -> previewTextColor
-            active -> previewActiveTextColor
-            else -> previewTextColor
-        }
-    }
-
-    private fun updateWithThreadCount(holder: MessageViewHolder, threadCount: Int) {
-        if (threadCount > 1) {
-            holder.threadCount.text = String.format("%d", threadCount)
-            holder.threadCount.isVisible = true
-        } else {
-            holder.threadCount.isVisible = false
-        }
-    }
-
-    private fun getPreview(isMessageEncrypted: Boolean, previewText: String): String {
-        return if (isMessageEncrypted) {
-            res.getString(R.string.preview_encrypted)
-        } else {
-            previewText
         }
     }
 
@@ -620,42 +345,55 @@ class MessageListAdapter internal constructor(
     }
 
     private fun calculateSelectionCount(): Int {
-        if (selected.isEmpty()) {
-            return 0
+        return when {
+            selected.isEmpty() -> 0
+            !appearance().showingThreadedList -> selected.size
+            else ->
+                viewItems
+                    .asSequence()
+                    .filterIsInstance<MessageListViewItem.Message>()
+                    .map { it.item }
+                    .filter { it.uniqueId in selected }
+                    .sumOf { it.threadCount.coerceAtLeast(1) }
         }
-
-        if (!appearance.showingThreadedList) {
-            return selected.size
-        }
-
-        return messages
-            .asSequence()
-            .filter { it.uniqueId in selected }
-            .sumOf { it.threadCount.coerceAtLeast(1) }
     }
 
     private fun getItemFromView(view: View): MessageListItem? {
-        val messageViewHolder = view.tag as MessageViewHolder
-        return getItemById(messageViewHolder.uniqueId)
+        if (featureFlagProvider.provide(UseComposeForMessageListItems).isEnabled()) {
+            val messageViewHolder = view.tag as ComposableMessageViewHolder
+            return getItemById(messageViewHolder.uniqueId)
+        } else {
+            val messageViewHolder = view.tag as MessageViewHolder
+            return getItemById(messageViewHolder.uniqueId)
+        }
     }
-}
 
-private fun Resources.getFloatCompat(@DimenRes resId: Int) = ResourcesCompat.getFloat(this, resId)
-
-private fun View.setMarginTop(margin: Int) {
-    (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = margin
+    private fun List<MessageListViewItem>.filterMessageListItem(): List<MessageListItem> =
+        filterIsInstance<MessageListViewItem.Message>()
+            .map { it.item }
 }
 
 private class MessageListDiffCallback(
-    private val oldMessageList: List<MessageListItem>,
-    private val newMessageList: List<MessageListItem>,
+    private val oldMessageList: List<MessageListViewItem>,
+    private val newMessageList: List<MessageListViewItem>,
 ) : DiffUtil.Callback() {
     override fun getOldListSize(): Int = oldMessageList.size
 
     override fun getNewListSize(): Int = newMessageList.size
 
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return oldMessageList[oldItemPosition].uniqueId == newMessageList[newItemPosition].uniqueId
+        val oldItem = oldMessageList[oldItemPosition]
+        val newItem = newMessageList[newItemPosition]
+        return when (oldItem) {
+            is MessageListViewItem.InAppNotificationBannerList
+            if newItem is MessageListViewItem.InAppNotificationBannerList -> true
+
+            is MessageListViewItem.Message
+            if newItem is MessageListViewItem.Message -> oldItem.item.uniqueId == newItem.item.uniqueId
+
+            is MessageListViewItem.Footer if newItem is MessageListViewItem.Footer -> true
+            else -> false
+        }
     }
 
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
@@ -668,4 +406,26 @@ interface MessageListItemActionListener {
     fun onToggleMessageSelection(item: MessageListItem)
     fun onToggleMessageFlag(item: MessageListItem)
     fun onFooterClicked()
+    fun filterInAppNotificationEvents(notification: InAppNotification): Boolean
+    fun onNotificationActionClicked(action: NotificationAction)
+}
+
+sealed interface MessageListViewItem {
+    val viewId: Long
+    val viewType: Int
+
+    data object InAppNotificationBannerList : MessageListViewItem {
+        override val viewId: Long = IN_APP_NOTIFICATION_BANNER_INLINE_LIST_ID
+        override val viewType: Int = TYPE_IN_APP_NOTIFICATION_BANNER_INLINE_LIST
+    }
+
+    data class Message(val item: MessageListItem) : MessageListViewItem {
+        override val viewId: Long get() = item.uniqueId
+        override val viewType: Int = TYPE_MESSAGE
+    }
+
+    data class Footer(val text: String) : MessageListViewItem {
+        override val viewId: Long = FOOTER_ID
+        override val viewType: Int = TYPE_FOOTER
+    }
 }

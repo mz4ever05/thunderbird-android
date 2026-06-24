@@ -26,16 +26,20 @@ android {
 }
 
 dependencies {
-    implementation(projects.core.ui.compose.navigation)
+    implementation(projects.core.ui.navigation)
 
     implementation(projects.core.ui.compose.designsystem)
     implementation(projects.core.ui.legacy.designsystem)
 
-    implementation(projects.core.ui.compose.theme2.thunderbird)
-    implementation(projects.core.ui.compose.theme2.k9mail)
+    implementation(projects.core.ui.compose.theme2)
 
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.jetbrains.compose.material3)
+    implementation(libs.jetbrains.compose.material.icons.extended)
 
-    implementation(libs.kotlinx.datetime)
+    implementation(libs.kotlin.reflect)
+}
+
+codeCoverage {
+    branchCoverage = 0
+    lineCoverage = 0
 }

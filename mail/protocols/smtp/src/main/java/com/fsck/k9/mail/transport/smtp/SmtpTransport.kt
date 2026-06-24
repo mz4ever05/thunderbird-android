@@ -9,7 +9,6 @@ import com.fsck.k9.mail.ConnectionSecurity
 import com.fsck.k9.mail.K9MailLib
 import com.fsck.k9.mail.Message
 import com.fsck.k9.mail.Message.RecipientType
-import com.fsck.k9.mail.MessagingException
 import com.fsck.k9.mail.MissingCapabilityException
 import com.fsck.k9.mail.NetworkTimeouts.SOCKET_CONNECT_TIMEOUT
 import com.fsck.k9.mail.NetworkTimeouts.SOCKET_READ_TIMEOUT
@@ -36,6 +35,7 @@ import java.net.UnknownHostException
 import java.security.GeneralSecurityException
 import java.util.Locale
 import javax.net.ssl.SSLException
+import net.thunderbird.core.common.exception.MessagingException
 import net.thunderbird.core.logging.legacy.Log
 import org.apache.commons.io.IOUtils
 import org.jetbrains.annotations.VisibleForTesting
@@ -155,6 +155,7 @@ class SmtpTransport(
                 AuthType.NONE -> {
                     // The outgoing server is configured to not use any authentication. So do nothing.
                 }
+
                 AuthType.PLAIN -> {
                     // try saslAuthPlain first, because it supports UTF-8 explicitly
                     if (authPlainSupported) {
@@ -165,6 +166,7 @@ class SmtpTransport(
                         throw MissingCapabilityException("AUTH PLAIN")
                     }
                 }
+
                 AuthType.CRAM_MD5 -> {
                     if (authCramMD5Supported) {
                         saslAuthCramMD5()
@@ -172,6 +174,7 @@ class SmtpTransport(
                         throw MissingCapabilityException("AUTH CRAM-MD5")
                     }
                 }
+
                 AuthType.XOAUTH2 -> {
                     if (oauthTokenProvider == null) {
                         throw MessagingException("No OAuth2TokenProvider available.")
@@ -183,15 +186,13 @@ class SmtpTransport(
                         throw MissingCapabilityException("AUTH OAUTHBEARER")
                     }
                 }
+
                 AuthType.EXTERNAL -> {
                     if (authExternalSupported) {
                         saslAuthExternal()
                     } else {
                         throw MissingCapabilityException("AUTH EXTERNAL")
                     }
-                }
-                else -> {
-                    throw MessagingException("Unhandled authentication method found in server settings (bug).")
                 }
             }
         } catch (e: MessagingException) {
@@ -551,26 +552,68 @@ class SmtpTransport(
     private fun saslOAuth(method: OAuthMethod) {
         Log.d("saslOAuth() called with: method = $method")
         retryOAuthWithNewToken = true
+        checkNotNull(oauthTokenProvider) { "No OAuth2TokenProvider available." }
 
-        val primaryEmail = oauthTokenProvider?.primaryEmail
-        val primaryUsername = primaryEmail ?: username
+        val users = buildSet {
+            // add the given username to the list of users
+            add(username)
+            // add all the usernames we can fetch from the id_token to be used in case
+            // the given username fails to authenticate.
+            addAll(oauthTokenProvider.usernames)
+        }.toMutableSet()
 
-        try {
-            attempOAuth(method, primaryUsername)
-        } catch (negativeResponse: NegativeSmtpReplyException) {
-            Log.w(negativeResponse, "saslOAuth: failed to authenticate.")
-            if (negativeResponse.replyCode != SMTP_AUTHENTICATION_FAILURE_ERROR_CODE) {
-                throw negativeResponse
-            }
+        val negativeResponses = authenticateUsers(users, method)
 
-            oauthTokenProvider!!.invalidateToken()
+        if (negativeResponses.isNotEmpty()) {
+            Log.w("failed to authenticate with all discovered users.")
+            val (user, negativeResponse) = negativeResponses[username]?.let { username to it }
+                ?: negativeResponses.entries.first().toPair()
+
+            logger.log("invalidating current token")
+            oauthTokenProvider.invalidateToken()
 
             if (!retryOAuthWithNewToken) {
                 handlePermanentOAuthFailure(method, negativeResponse)
             } else {
-                handleTemporaryOAuthFailure(method, primaryUsername, negativeResponse)
+                handleTemporaryOAuthFailure(
+                    method = method,
+                    username = user,
+                    negativeResponseFromOldToken = negativeResponse,
+                )
             }
         }
+    }
+
+    private fun authenticateUsers(
+        users: MutableSet<String>,
+        method: OAuthMethod,
+    ): MutableMap<String, NegativeSmtpReplyException> {
+        val negativeResponses = mutableMapOf<String, NegativeSmtpReplyException>()
+        val sensitiveLog = "*sensitive*"
+        logger.log("users = ${users.takeIf { K9MailLib.isDebugSensitive() } ?: "[${users.size} emails found]"}")
+
+        val iterator = users.iterator()
+        while (iterator.hasNext()) {
+            val user = iterator.next()
+            try {
+                logger.log(
+                    "trying to authenticate with user '${
+                        user.takeIf { K9MailLib.isDebugSensitive() } ?: sensitiveLog
+                    }'",
+                )
+                attempOAuth(method, user)
+                negativeResponses.clear()
+                break
+            } catch (negativeResponse: NegativeSmtpReplyException) {
+                Log.w(negativeResponse, "saslOAuth: failed to authenticate.")
+                if (negativeResponse.replyCode != SMTP_AUTHENTICATION_FAILURE_ERROR_CODE) {
+                    throw negativeResponse
+                }
+                iterator.remove()
+                negativeResponses += user to negativeResponse
+            }
+        }
+        return negativeResponses
     }
 
     private fun handlePermanentOAuthFailure(

@@ -39,6 +39,9 @@ val navigationDropDownDrawerModule: Module = module {
             accountManager = get(),
             messageCountsProvider = get(),
             messageListRepository = get(),
+            notificationStream = get(),
+            featureFlagProvider = get(),
+            avatarMapper = get(),
         )
     }
 
@@ -50,7 +53,9 @@ val navigationDropDownDrawerModule: Module = module {
     }
 
     single<UseCase.GetDisplayTreeFolder> {
-        GetDisplayTreeFolder()
+        GetDisplayTreeFolder(
+            logger = get(),
+        )
     }
 
     single<UseCase.SyncAccount> {
@@ -69,7 +74,6 @@ val navigationDropDownDrawerModule: Module = module {
     viewModel {
         DrawerViewModel(
             getDrawerConfig = get(),
-            saveDrawerConfig = get(),
             getDisplayAccounts = get(),
             getDisplayFoldersForAccount = get(),
             getDisplayTreeFolder = get(),
