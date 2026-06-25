@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -41,7 +40,6 @@ internal fun WelcomeContent(
     onStartClick: () -> Unit,
     onImportClick: () -> Unit,
     appName: String,
-    showImportButton: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -57,7 +55,6 @@ internal fun WelcomeContent(
                 },
                 footer = {
                     WelcomeFooterSection(
-                        showImportButton = showImportButton,
                         onStartClick = onStartClick,
                         onImportClick = onImportClick,
                     )
@@ -176,7 +173,6 @@ private fun WelcomeMessage(
 
 @Composable
 private fun WelcomeFooterSection(
-    showImportButton: Boolean,
     onStartClick: () -> Unit,
     onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -187,7 +183,6 @@ private fun WelcomeFooterSection(
             .padding(top = MainTheme.spacings.quadruple),
     ) {
         WelcomeFooter(
-            showImportButton = showImportButton,
             onStartClick = onStartClick,
             onImportClick = onImportClick,
             modifier = Modifier
@@ -199,7 +194,6 @@ private fun WelcomeFooterSection(
 
 @Composable
 private fun WelcomeFooter(
-    showImportButton: Boolean,
     onStartClick: () -> Unit,
     onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -214,12 +208,10 @@ private fun WelcomeFooter(
             onClick = onStartClick,
             modifier = Modifier.testTag("onboarding_welcome_start_button"),
         )
-        if (showImportButton) {
-            ButtonText(
-                text = stringResource(id = R.string.onboarding_welcome_import_button),
-                onClick = onImportClick,
-            )
-        }
+        ButtonText(
+            text = stringResource(id = R.string.onboarding_welcome_import_button),
+            onClick = onImportClick,
+        )
 
         TextBodySmall(
             text = stringResource(R.string.onboarding_welcome_developed_by),
@@ -230,7 +222,7 @@ private fun WelcomeFooter(
     }
 }
 
-private fun Modifier.defaultItemModifier() = composed {
-    fillMaxWidth()
-        .padding(MainTheme.spacings.default)
-}
+@Composable
+private fun Modifier.defaultItemModifier() = this
+    .fillMaxWidth()
+    .padding(MainTheme.spacings.default)
